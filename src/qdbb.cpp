@@ -93,7 +93,7 @@ int startBB() {
     
     while(true) {
         
-        printTxt(2, "Active Nodes: %d", nodeList_.size());
+        printTxt(3, "Active Nodes: %d", nodeList_.size());
         
         if(nodeList_.size() == 0) {
             break;
@@ -128,7 +128,15 @@ int startBB() {
 	}
         
     }
-    
+
+    // Summary report
+    printTxt(1, "========== SUMMARY ==========");
+    printTxt(1, "Best objective value: %f", globalUpperBound_);
+    printTxt(1, "Values: ");
+    for(int i=0; i<N; i++) {
+      printTxt(1, "\t%d: %f", (i+1), bestSoln_[i]);
+    }
+    printTxt(1,"Done...");
     return status;
 }
 
