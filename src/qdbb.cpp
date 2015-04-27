@@ -17,6 +17,7 @@ TODO: Solution may not be feasible (OPTIMAL), if so, return
 
 
 struct Node {
+  //attributes(const string& name, bool value) : name(name), value(value) {}
     int         ID;
     double      nodeObj;
     double      lowerBound;
@@ -26,8 +27,9 @@ struct Node {
     bool        eliminated;
     MSKtask_t   problem;
     Node*       parent;
-    std::vector< std::vector <int> > usedCuts;
+  std::vector< std::vector <int> > usedCuts;
     int depth;
+    int totalCut;
 };
 
 static void MSKAPI printstr(void *handle, MSKCONST char str[])
@@ -42,6 +44,7 @@ int branchingRule_ = 0; // 0: most fractional, 1: index-based, 2: value-based
 int cutPriority_ = 0; // 0: default, most fractional, 1: best-value
 int cutRule_ = 0; // 0: default, no cut, 1: always cut, 2: deep-heuristic-cut
 int cutLimit_ = 1; // max number of cuts to add, default is 1
+int cutPerIteration_ = 1; // number of cuts to be added at each relaxation
 int nodesProcessed_ = 0;
 int totalNodes_ = 0;
 int numVars_ = 0;
@@ -59,7 +62,12 @@ int selectNode(Node** activeNode);
 int solveLP(Node* aNode);
 int isIntFeasible(Node* aNode);
 int branch(Node* activeNode);
+int cut(Node* activeNode);
 int eliminateNodes();
+int nextCut(int N, double* soln, std::vector< std::vector<int> > *usedCuts);
+void addNewCut(MSKtask_t env, int asset, double value);
+
+
 
 int main(int argc, char* argv[]) {
 
@@ -88,7 +96,7 @@ int startBB() {
     int status = 0;
     createProblem(&oProblem);
     
-    root = (Node *) malloc(sizeof(Node));
+    root = new Node; //(Node *) malloc(sizeof(Node));
     createNewNode(0, &root, -1 /*var id*/, 0 /* bound */, 0 /* lower */);
     
     while(true) {
@@ -103,6 +111,9 @@ int startBB() {
         selectNode(&activeNode);
         
 	if(!activeNode->eliminated) {
+	  nodesProcessed_++;
+	  solveLP(activeNode);
+	  cut(activeNode);
 	  solveLP(activeNode);
 	} else {
 	  continue;
@@ -136,6 +147,8 @@ int startBB() {
     for(int i=0; i<N; i++) {
       printTxt(1, "\t%d: %f", (i+1), bestSoln_[i]);
     }
+    printTxt(1, "Number of nodes processed: %d", nodesProcessed_);
+    printTxt(1, "Number of nodes generated: %d", totalNodes_);
     printTxt(1,"Done...");
     return status;
 }
@@ -158,10 +171,10 @@ int branch(Node* activeNode) {
     // Call newNode twice
 
     // Left - Less than bound
-    Node* leftNode = (Node*) malloc(sizeof(Node));
+    Node* leftNode =  new Node; // (Node*) malloc(sizeof(Node));
     createNewNode(activeNode /*parent*/, &leftNode, asset /*var id*/,  floor(activeNode->nodeSoln[asset])/* bound */, 0 /* lower */);
     // Right - Greater than bound
-    Node* rightNode = (Node*) malloc(sizeof(Node));
+    Node* rightNode = new Node; //(Node*) malloc(sizeof(Node));
     createNewNode(activeNode /*parent*/, &rightNode, asset /*var id*/, ceil(activeNode->nodeSoln[asset]) /* bound */, 1 /* lower */);
     
     
@@ -171,12 +184,12 @@ int branch(Node* activeNode) {
     return status;
 }
 
-int cut() {
-    int status = 0;
+int cut(Node* activeNode) {
+    int status = 1;
     
+    int variableForCut = nextCut(N, activeNode->nodeSoln, &(activeNode->usedCuts)); 
     
-    
-    
+    addNewCut(activeNode->problem, variableForCut+1, activeNode->nodeSoln[variableForCut]);
     
     return status;
 }
@@ -201,10 +214,12 @@ int selectNode(Node** activeNode) {
 
 int eliminateNodes() {
   for(unsigned int i=0; i<nodeList_.size(); i++) {
-     if(nodeList_[i]->lowerBound > globalUpperBound_) {
+     if(nodeList_[i]->lowerBound >= globalUpperBound_) {
        nodeList_[i]->eliminated = true;
      }
   }
+
+  return 1;
 }
 
 int createNewNode(Node* parent, Node** newNode, int varID, double bound, int lower) {
@@ -216,8 +231,8 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
         
     
         for (int i = 0; i < N; ++i) { // Initialize array of used cuts
-            std::vector<int> row; // Create an empty row for each asset
-            //(*newNode)->usedCuts.push_back(row); // Add the row to the main vector
+            std::vector<int> row; // Create an empty row for each asset  
+            (*newNode)->usedCuts.push_back(row); // Add the row to the main vector
         }
         
         
@@ -229,7 +244,7 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
 	(*newNode)->eliminated = false;
         (*newNode)->problem = oProblem;
         (*newNode)->parent = 0;
-        //(*newNode)->usedCuts = usedCuts;
+        //(*newNode)->usedCuts;
         (*newNode)->depth = 0;
         
         printTxt(3, "Root is created");
@@ -262,9 +277,9 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
         std::vector< std::vector <int> > usedCuts;
         // copy usedCuts
         for (int i = 0; i < N; i++) { // Initialize array of used cuts
-	  //std::vector<int> row = parent->usedCuts[i]; // Create an empty row for each asset
-            //usedCuts.push_back(row); // Add the row to the main vector
-        }
+	  std::vector<int> newRow(parent->usedCuts[i]); // Create an empty row for each asset
+	  (*newNode)-> usedCuts.push_back(newRow); // Add the row to the main vector
+	}
         
         (*newNode)->ID = totalNodes_;
         (*newNode)->nodeObj = 0;
@@ -275,7 +290,7 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
         //(*newNode)->problem = &newProblem;
         (*newNode)->problem = newProblem;
 	(*newNode)->parent = parent;
-        //(*newNode)->usedCuts = usedCuts;
+        //(*newNode)->usedCuts.swap(usedCuts);
         (*newNode)->depth = parent->depth+1;
         
 	

@@ -97,7 +97,9 @@ void readIntegerArray(string _filename, int N, int* target);
 void readDouble2DArray(string _filename, int N, double** target);
 int nextCut(int N, double* soln, vector< vector<int> > *usedCuts);
 
-
+double* pBar;
+double** DhalfVT;
+double** VDhalfinv;
 
 int createProblem(MSKtask_t* task)
 {
@@ -133,9 +135,9 @@ int createProblem(MSKtask_t* task)
   for(int i=0; i<N; ++i) {
     phat[i] = P[i]*M[i]/C;
   }
-  double* pbar = new double[N];
+  double* mpbar = new double[N];
   for(int i=0; i<N; ++i) {
-    pbar[i] = phat[i]*(mu_0-mu[i]);
+    mpbar[i] = phat[i]*(mu_0-mu[i]);
   }
   
   double** Q_hat = new double*[N+1];
@@ -159,15 +161,15 @@ int createProblem(MSKtask_t* task)
   
   ct[0] = 1;
   
-  double* npBar = new double[N+1];
-    double** DhalfVT = new double*[N+1];
-    double** VDhalfinv = new double*[N+1];
+  pBar = new double[N+1];
+  DhalfVT = new double*[N+1];
+  VDhalfinv = new double*[N+1];
     for (int i=0; i<N+1; ++i) {
         DhalfVT[i] = new double[N+1];
         VDhalfinv[i] = new double[N+1];
     }
   
-  initEigTransform(N, Q_hat, npBar, DhalfVT, VDhalfinv);
+  initEigTransform(N, Q_hat, pBar, DhalfVT, VDhalfinv);
   
   /*cout << "npbar" << endl;
   for (int i=0; i<N+1; ++i) {
@@ -228,7 +230,7 @@ int createProblem(MSKtask_t* task)
   // Give Constraints
   // Row 1 - pbar pbarzero
   for(int j=0; j<N; j++) {
-    r = MSK_putaij(*task, 1, j+1, pbar[j]);
+    r = MSK_putaij(*task, 1, j+1, mpbar[j]);
   }
   // Row 2 - phat leq 1
   for(int j=0; j<N; j++) {
@@ -563,8 +565,8 @@ void MOSEK_addDCyC(MSKtask_t env, MSKrescodee & problem, int asset, double value
 	
 
     
-	MSK_writedata(env, "beforeCut.lp");
-    MSK_writedata(env, "beforeCut.mps");
+  //MSK_writedata(env, "beforeCut.lp");
+  //MSK_writedata(env, "beforeCut.mps");
     
     int N = 0;
     MSK_getnumvar(env,&N);
@@ -626,7 +628,7 @@ void MOSEK_addDCyC(MSKtask_t env, MSKrescodee & problem, int asset, double value
     
     double newro = tau*alpha*beta;
     
-    cout << ">> Compact Disjunctive Cut Insertion" << endl;
+    ///cout << ">> Compact Disjunctive Cut Insertion" << endl;
 
     double** P1 = new double*[N+1];
     double** VDPDV = new double*[N+1];
@@ -741,6 +743,192 @@ void MOSEK_addDCyC(MSKtask_t env, MSKrescodee & problem, int asset, double value
 
 
 
+
+
+void addNewCut(MSKtask_t env, int asset, double value) { //, double* pBar,  double** DhalfVT,  double** VDhalfinv) {
+
+	
+  
+    
+  //MSK_writedata(env, "beforeCut.lp");
+  //MSK_writedata(env, "beforeCut.mps");
+    
+    int N = 0;
+    MSK_getnumvar(env,&N);
+    
+    N = N-1;
+    
+	/*cout << "pbarinfo" << endl;
+	for(int i=0; i<N+1; i++) {
+		cout << "pbar[" << i << "]: " << pBar[i] << endl;
+	}*/
+    
+    int i=0; int j=0;
+
+	double alpha0 = floor(value);
+	double beta0 = ceil(value);
+    
+    double* matC = new double[N+1];
+    
+    for(j=0; j<N+1; ++j) {
+		//cout << "cut info" << endl;
+		//cout << asset << endl;
+		//cout << N << endl;
+		matC[j] = VDhalfinv[asset][j];
+	}
+
+
+	double normC = 0;
+	for(i=0; i<N+1; ++i) {
+		normC = normC + matC[i]*matC[i];
+	}
+	normC = sqrt(normC);
+
+	double alpha = alpha0/normC;
+	double beta = beta0/normC;
+	
+
+	double tau = -1;
+    
+    
+    double** newP = new double*[N+1];
+	for(i = 0; i < N+1; ++i){
+		newP[i] = new double[N+1];
+		for(j = 0; j < N+1; ++j) {
+			newP[i][j] = tau * (matC[i]/normC) * (matC[j]/normC);
+			if (i==j && i!=0) {
+				newP[i][j] = newP[i][j] + 1; // Add matrix J effect
+			}
+			//cout << "P(" << i << "," << j << "): " << newP[i][j] << endl;
+		}
+	}
+    
+	//cout << "newp" << endl;
+    double* newp = new double[N+1];
+	for(i = 0; i < N+1; ++i){
+		//cout << "pbar(" << i << "): " << pBar[i] << endl;
+		newp[i] = pBar[i] - tau * ((alpha+beta)/2) * (matC[i]/normC);
+		//cout << newp[i] << endl;
+	}
+    
+    double newro = tau*alpha*beta;
+    
+    //cout << ">> Compact Disjunctive Cut Insertion" << endl;
+
+    double** P1 = new double*[N+1];
+    double** VDPDV = new double*[N+1];
+    for(i=0; i<N+1; ++i) { // First part of VDPDV
+        P1[i] = new double[N+1];
+        VDPDV[i] = new double[N+1];
+        for(j=0; j<N+1; ++j) {
+            P1[i][j] = 0;
+            VDPDV[i][j] = 0;
+        }
+    }
+    
+
+    double** DVTT = new double*[N+1];
+    for(i=0; i<N+1; ++i) {
+        DVTT[i] = new double[N+1];
+        for(j=0; j<N+1; ++j) {
+            //cout << i << "," << j << endl;
+            DVTT[i][j] = DhalfVT[j][i];
+        }
+    }
+    
+
+    matMult(DVTT, newP, P1, N+1);
+    matMult(P1, DhalfVT, VDPDV, N+1);
+    
+    
+    double* pDV = new double[N+1];
+
+    for(i=0; i<N+1; ++i) {
+        pDV[i] = 0;
+        for(j=0; j<N+1; ++j) {
+            pDV[i] = pDV[i] + newp[j]*DhalfVT[j][i];
+        }
+    }
+    
+    int cutidx = 0;
+    
+    MSK_getnumcon(env,&cutidx); 
+    MSK_appendcons(env,1); 
+    
+    MSK_putconbound(env, 
+                      cutidx, 
+                      MSK_BK_UP, 
+                      -MSK_INFINITY, 
+                      -newro); 
+    
+    // Give Quadratic Constraints
+    
+    // cout << "CP1" << endl;
+    
+    
+      // Linear Part of QC
+      for(int j=0; j<N+1; j++) {
+         MSK_putaij(env, cutidx, j, 2*pDV[j]);
+      }
+      
+    // cout << "CP2" << endl;  
+	
+	
+    
+      // Q Part of QC
+      int* rowindex = new int[(N+1)*(N+2)/2];
+      int* colindex = new int[(N+1)*(N+2)/2];
+      double* valindex = new double[(N+1)*(N+2)/2];
+      int busindex = 0;
+      for(int i=0; i<N+1; i++) {
+        for(int j=0; j<i+1; j++) {
+          rowindex[busindex]=i;
+          colindex[busindex]=j;
+          valindex[busindex]=2*VDPDV[i][j];
+		  
+          busindex++;
+        }
+		
+      }
+    // cout << "CP3" << endl;  
+    
+      
+      MSK_putqconk(env, cutidx, (N+1)*(N+2)/2, rowindex, colindex, valindex);
+      
+    // cout << "CP4" << endl;  
+    
+      //MSK_writedata(env, "afterCut.lp");
+	//MSK_writedata(env, "afterCut.mps");
+    
+    // CPLEX STUFF
+        /* IloExpr quadCut(env);
+		for (i = 1; i < N+1; ++i) { // Quadratic Part - Only z variables
+			for (j = 1; j < N+1; ++j) {
+				quadCut += VDPDV[i][j]*(*var_z)[i-1]*(*var_z)[j-1];
+			}
+			quadCut += 2*pDV[i]*(*var_z)[i-1];
+		}
+
+		for (j= 1; j<N+1; ++j) { // Quadratic Part - t z
+			quadCut += VDPDV[0][j]*(*var_t)*(*var_z)[j-1];
+			quadCut += VDPDV[j][0]*(*var_t)*(*var_z)[j-1];
+		}
+
+		// Quadratic part - t t
+		quadCut += VDPDV[0][0]*(*var_t)*(*var_t);
+
+		quadCut += 2*pDV[0]*(*var_t);
+
+		quadCut += 1*newro; */
+    
+	delete[] rowindex;
+	delete[] colindex;
+	delete[] valindex;
+}
+
+
+
+
 void matMult( double** mA,  double** mB, double** mC, int sizeN) {
 	int i=0, j=0, k=0;
 	int n = sizeN;
@@ -840,7 +1028,7 @@ int nextCut(int N, double* soln, vector< vector<int> > *usedCuts) {
 	double* diff = new double[N];
 	int i=0;
 	for(i=0; i<N; ++i) {
-		diff[i] = fabs(soln[i+1]-round(soln[i+1]));
+		diff[i] = fabs(soln[i]-round(soln[i]));
 	}
 
 	// Step 2: Find feasible cuts
@@ -874,7 +1062,7 @@ int nextCut(int N, double* soln, vector< vector<int> > *usedCuts) {
 			// Step 5: Found, update cut list
 			(*usedCuts).at(largestIndex).push_back(floor(soln[largestIndex+1]));
 
-			cout << "\n===New cut for asset " << (largestIndex+1) << " for value: " << soln[largestIndex+1] << endl;
+			//cout << "\n===New cut for asset " << (largestIndex+1) << " for value: " << soln[largestIndex+1] << endl;
 			delete[] diff;
 			return largestIndex;
 		} else {
