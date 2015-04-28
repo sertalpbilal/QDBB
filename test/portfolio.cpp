@@ -100,8 +100,9 @@ int nextCut(int N, double* soln, vector< vector<int> > *usedCuts);
 double* pBar;
 double** DhalfVT;
 double** VDhalfinv;
+double* mu;
 
-int createProblem(MSKtask_t* task)
+int createProblem(MSKtask_t* task, char* argv[])
 {
 
   // if(argc >= 7) {
@@ -110,10 +111,10 @@ int createProblem(MSKtask_t* task)
 	// }
 
   // Create variables
-  int N = 10;
-  double R = 0.02;
+  int N = atoi(argv[1]);
+  double R = atof(argv[9]); //0.02;
   double mu_0 = 0;
-  double C = 100000;
+  double C = atof(argv[8]); //100000;
 
   double **Q = new double*[N];
   for(int i = 0; i < N; ++i) {
@@ -122,7 +123,7 @@ int createProblem(MSKtask_t* task)
   
   int* M = new int[N];
   double* P = new double[N];
-  double* mu = new double[N];
+  mu = new double[N];
   
   // Read the file
   readDouble2DArray("../data/Q", N, Q);
@@ -210,7 +211,7 @@ int createProblem(MSKtask_t* task)
     r = MSK_putvarbound(*task,
     j+1,           /* Index of variable.*/
     MSK_BK_RA,      /* Bound key.*/
-    -0.2/phat[j],      /* Numerical value of lower bound.*/
+			0,// -0.2/phat[j],      /* Numerical value of lower bound.*/
     1/phat[j]); 
   }
    
@@ -745,7 +746,7 @@ void MOSEK_addDCyC(MSKtask_t env, MSKrescodee & problem, int asset, double value
 
 
 
-void addNewCut(MSKtask_t env, int asset, double value) { //, double* pBar,  double** DhalfVT,  double** VDhalfinv) {
+int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* pBar,  double** DhalfVT,  double** VDhalfinv) {
 
 	
   
@@ -815,6 +816,7 @@ void addNewCut(MSKtask_t env, int asset, double value) { //, double* pBar,  doub
     
     //cout << ">> Compact Disjunctive Cut Insertion" << endl;
 
+
     double** P1 = new double*[N+1];
     double** VDPDV = new double*[N+1];
     for(i=0; i<N+1; ++i) { // First part of VDPDV
@@ -851,6 +853,29 @@ void addNewCut(MSKtask_t env, int asset, double value) { //, double* pBar,  doub
     }
     
     int cutidx = 0;
+    
+    	  
+
+    // Calculate if cut is deep
+    if(option==1) {
+
+      double* mysolnxx = (double*) malloc((N+1)*sizeof(double));
+      MSK_getsolutionslice(env, MSK_SOL_ITR, MSK_SOL_ITEM_XX, 0, N+1, mysolnxx);
+
+
+      double tvalue = 0;
+      for(int i=0; i<N+1; i++) {
+	for(int j=0; j<N+1; j++) {
+	  tvalue = tvalue + VDPDV[i][j]*mysolnxx[i]*mysolnxx[j];
+	}
+	tvalue = tvalue + 2*pDV[i]*mysolnxx[i];
+      }
+      //std::cout << "Value is : " << tvalue << ", rho is : " << -newro << std::endl;
+      if(abs(tvalue+newro)<1e-8) {
+	return 0;
+      }
+    }
+
     
     MSK_getnumcon(env,&cutidx); 
     MSK_appendcons(env,1); 
@@ -924,6 +949,9 @@ void addNewCut(MSKtask_t env, int asset, double value) { //, double* pBar,  doub
 	delete[] rowindex;
 	delete[] colindex;
 	delete[] valindex;
+
+	return 1;
+
 }
 
 
@@ -1018,18 +1046,30 @@ int solveWithMOSEK(MSKtask_t realtask, MSKrescodee & problem, double* solution, 
 
 
 
-int nextCut(int N, double* soln, vector< vector<int> > *usedCuts) {
+int nextCut(int N, int heuType, double* soln, vector< vector<int> > *usedCuts) {
 	/** In this part we will check the solution
 	 *  and by checking usedCuts, we will decide which asset to
 	 *  write a cut for
 	 */
 
+  double* diff = new double[N];
+  int i=0;
+
+  if(heuType==0) {
+
 	// Step 1: Sort assets based on their distance to half (.5)
-	double* diff = new double[N];
-	int i=0;
+	
 	for(i=0; i<N; ++i) {
 		diff[i] = fabs(soln[i]-round(soln[i]));
 	}
+
+  } else if(heuType==1) {
+    // Step 1: Sort assets based on their return values
+	for(i=0; i<N; ++i) {
+		diff[i] = mu[i];
+	}
+
+  }
 
 	// Step 2: Find feasible cuts
 	for(i=0; i<N; ++i) { // At most N iteration is needed
@@ -1072,7 +1112,7 @@ int nextCut(int N, double* soln, vector< vector<int> > *usedCuts) {
 	
 	delete[] diff;
 
-	return 0;
+	return -1;
 }
 
 
