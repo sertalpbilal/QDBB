@@ -6,6 +6,7 @@
 #include <cmath>
 #include <stdio.h>
 #include <stdarg.h>
+#include <ctime>
 #include "mosek.h"
 
 /* 
@@ -29,7 +30,7 @@ struct Node {
     Node*       parent;
   std::vector< std::vector <int> > usedCuts;
     int depth;
-    int totalCut;
+    int totalCuts;
 };
 
 static void MSKAPI printstr(void *handle, MSKCONST char str[])
@@ -42,11 +43,21 @@ double globalUpperBound_ = std::numeric_limits<double>::infinity();
 double* bestSoln_;
 int branchingRule_ = 0; // 0: most fractional, 1: index-based, 2: value-based
 int cutPriority_ = 0; // 0: default, most fractional, 1: best-value
-int cutRule_ = 0; // 0: default, no cut, 1: always cut, 2: deep-heuristic-cut
+int cutRule_ = 1; // 0: default, no cut, 1: always cut, 2: fading-cuts, 3: root-heuristic cut
+                  // 4: min depth for cut, 5: only if deep cut
+double deepCutThreshold_ = 1e-1; // deep-cut threshold value
+int cutSelection_ = 1;
 int cutLimit_ = 1; // max number of cuts to add, default is 1
-int cutPerIteration_ = 1; // number of cuts to be added at each relaxation
+int cutPerIteration_ = 3; // number of cuts to be added at each relaxation
+int iterationLimit_ = 1;
 int nodesProcessed_ = 0;
 int totalNodes_ = 0;
+int totalCutsGenerated_ = 0;
+int totalCutsApplied_ = 0;
+int totalSocoSolved_ = 0;
+int totalFadingCuts_ = 0;
+int totalNodeFadingCuts_ = 0;
+double objectiveTolerance_ = 1e-4;
 int numVars_ = 0;
 int N = 0; /* number of assets, always 1 less than numVars */
 Node* root;
@@ -54,8 +65,10 @@ std::vector< Node* > nodeList_;
 std::vector< Node* > allNodeList_; // Keeps pointer of all nodes for destructor
 int printLevel_ = 2;
 
-int startBB();
-int createProblem(MSKtask_t* originalProblem);
+int firstFeasibleObjective_ = 0;
+
+int startBB(char* argv[]);
+int createProblem(MSKtask_t* originalProblem, char* argv[]);
 int createNewNode(Node* parent, Node** newNode, int varID, double bound, int lower);
 int printTxt(int level, const char* fmt, ...);
 int selectNode(Node** activeNode);
@@ -64,18 +77,26 @@ int isIntFeasible(Node* aNode);
 int branch(Node* activeNode);
 int cut(Node* activeNode);
 int eliminateNodes();
-int nextCut(int N, double* soln, std::vector< std::vector<int> > *usedCuts);
-void addNewCut(MSKtask_t env, int asset, double value);
+int nextCut(int N, int heuType, double* soln, std::vector< std::vector<int> > *usedCuts);
+int addNewCut(MSKtask_t env, int asset, double value, int option);
 
 
 
 int main(int argc, char* argv[]) {
 
-    std::cout << "Working!" << std::endl;
+    std::cout << "QDBB." << std::endl;
     root = NULL;
-    // if(argc) ....
-    numVars_ = 11;
+    
+
+    numVars_ = atoi(argv[1])+1;
     N = numVars_ - 1;
+
+    cutRule_ = atoi(argv[2]);
+    cutPriority_ = atoi(argv[3]);
+    cutSelection_ = atoi(argv[4]);
+    cutLimit_ = atoi(argv[5]);
+    cutPerIteration_ = atoi(argv[6]);
+    iterationLimit_ = atoi(argv[7]);
     
     MSKenv_t env = NULL;
     MSKtask_t task = NULL;
@@ -87,18 +108,19 @@ int main(int argc, char* argv[]) {
     
     oProblem = task;
     
-    startBB();
+    startBB(argv);
     
     return 1;
 }
  
-int startBB() {
+int startBB(char* argv[]) {
     int status = 0;
-    createProblem(&oProblem);
+    createProblem(&oProblem, argv);
     
     root = new Node; //(Node *) malloc(sizeof(Node));
     createNewNode(0, &root, -1 /*var id*/, 0 /* bound */, 0 /* lower */);
     
+    clock_t begin = clock();
     while(true) {
         
         printTxt(3, "Active Nodes: %d", nodeList_.size());
@@ -109,15 +131,70 @@ int startBB() {
         
         Node* activeNode;
         selectNode(&activeNode);
-        
 	if(!activeNode->eliminated) {
+	  printTxt(4, "Processing the node now...");
 	  nodesProcessed_++;
 	  solveLP(activeNode);
-	  cut(activeNode);
-	  solveLP(activeNode);
+	  totalSocoSolved_++;
+	  if(!activeNode->feasible) {
+	    goto endofcutting;
+	  }
+	  isIntFeasible(activeNode);
+	  if(activeNode->intfeasible) {
+	    goto endofcutting;
+	  }
+	  if(cutRule_>0) { // B&C
+	    int totalCut = 0;
+	    int iterN = 0;
+	    //double prevObjective = activeNode->nodeObj;
+	    if(cutRule_==1) {
+	      while(iterN < iterationLimit_) {
+		int iterCut = 0;
+		while(iterCut < cutPerIteration_ && activeNode->totalCuts < cutLimit_) {
+		  int isNewCut = cut(activeNode);
+		  activeNode->totalCuts += isNewCut;
+		  totalCutsApplied_ += isNewCut;
+		  totalCutsGenerated_++;
+		  iterCut++;
+		  totalCut++;
+		}
+		solveLP(activeNode);
+		totalSocoSolved_++;
+		iterN++;
+	      }
+	    } else if(cutRule_ == 2) {
+	      double prevObjective = activeNode->nodeObj + 2*objectiveTolerance_;
+	      double newObjective = activeNode->nodeObj;
+	      totalNodeFadingCuts_++;
+	      while(newObjective <= prevObjective - objectiveTolerance_) {
+		if(activeNode->totalCuts < cutLimit_) {
+		  int isNewCut = cut(activeNode);
+		  totalFadingCuts_ += isNewCut;
+		  activeNode->totalCuts += isNewCut;
+		  totalCutsGenerated_ ++;
+		  totalCutsApplied_ += isNewCut;
+		} else {
+		  printTxt(6, "Cut limit reached for node %d",activeNode->ID);
+		  break;
+		}
+		solveLP(activeNode);
+		totalSocoSolved_++;
+		if(!activeNode->feasible) { break; }
+		prevObjective = newObjective;
+                newObjective = activeNode -> nodeObj;
+	      }
+	    } else {
+	      printTxt(3, "Undefined cutting rule. Please check readme.");
+	    }
+	  }
+
+	  //cut(activeNode);
+	  //solveLP(activeNode);
 	} else {
 	  continue;
 	}
+
+        endofcutting:
 
 	if( activeNode->feasible) { isIntFeasible(activeNode); }
 
@@ -139,6 +216,8 @@ int startBB() {
 	}
         
     }
+    clock_t end = clock();
+    double elapsed = double(end-begin) / CLOCKS_PER_SEC;
 
     // Summary report
     printTxt(1, "========== SUMMARY ==========");
@@ -149,6 +228,13 @@ int startBB() {
     }
     printTxt(1, "Number of nodes processed: %d", nodesProcessed_);
     printTxt(1, "Number of nodes generated: %d", totalNodes_);
+    printTxt(1, "Total SOCO solved: %d", totalSocoSolved_);
+    printTxt(1, "Total time elapsed: %f seconds",  elapsed );
+    printTxt(1, "Total cuts generated: %d", totalCutsGenerated_);
+    printTxt(1, "Total cuts applied: %d", totalCutsApplied_);
+    if(cutRule_==2) {
+      printTxt(1, "Average effective cuts: %f", (double) totalFadingCuts_ / totalNodeFadingCuts_);
+    }
     printTxt(1,"Done...");
     return status;
 }
@@ -185,11 +271,13 @@ int branch(Node* activeNode) {
 }
 
 int cut(Node* activeNode) {
-    int status = 1;
+    int status = 0;
     
-    int variableForCut = nextCut(N, activeNode->nodeSoln, &(activeNode->usedCuts)); 
+    int variableForCut = nextCut(N, cutPriority_, activeNode->nodeSoln, &(activeNode->usedCuts)); 
     
-    addNewCut(activeNode->problem, variableForCut+1, activeNode->nodeSoln[variableForCut]);
+    if(variableForCut >= 0 ) {
+      status = addNewCut(activeNode->problem, variableForCut+1, activeNode->nodeSoln[variableForCut], cutSelection_);
+    }
     
     return status;
 }
@@ -200,14 +288,15 @@ int selectNode(Node** activeNode) {
     int max_depth = 0;
     *activeNode = nodeList_[0];
     for(unsigned int i=0; i < nodeList_.size(); i++) {
-        if(nodeList_[i]->depth > max_depth) {
+        if(nodeList_[i]->depth > max_depth && i>selected) {
             selected = i;
             *activeNode = nodeList_[i];
+	    max_depth = nodeList_[i]->depth;
         }
     }
     nodeList_.erase(nodeList_.begin()+selected);
     
-    printTxt(4,"Node selected: %d (%p)", (*activeNode)->ID, *activeNode);
+    printTxt(3,"Node selected: %d (%p)", (*activeNode)->ID, *activeNode);
     
     return status;
 }
@@ -292,6 +381,7 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
 	(*newNode)->parent = parent;
         //(*newNode)->usedCuts.swap(usedCuts);
         (*newNode)->depth = parent->depth+1;
+	(*newNode)->totalCuts = parent->totalCuts;
         
 	
     }
@@ -312,16 +402,28 @@ int solveLP(Node* aNode) {
     
     //MSK_analyzeproblem(mtask, MSK_STREAM_LOG);
 
+    //printTxt(6,"Task is preparing to be cloned");
+
 
     MSK_clonetask(aNode->problem, &mtask);
     
+    printTxt(6,"Task is cloned");
+
+
     //MSKvariabletypee* vartype = malloc(numVars_*sizeof(MSKvariabletypee));
     for(int i=0; i<N; ++i) {
         MSK_putvartype (mtask, i+1, MSK_VAR_TYPE_CONT);
     }
+
+    //MSK_toconic(mtask);
+
     //std::cout << "Running so far!" << std::endl;
     //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
+    //printTxt(6,"Ready to solve with MOSEK");
     MSK_optimize(mtask);
+    printTxt(6,"Problem is solved with  MOSEK");
+   
+    MSK_solutionsummary(mtask,MSK_STREAM_LOG);
     
     MSKsolstae solsta;
     MSK_getsolsta (mtask, MSK_SOL_ITR, &solsta); 
@@ -332,6 +434,8 @@ int solveLP(Node* aNode) {
         // Save it, etc..
       
       //}
+
+    
 
     switch( solsta ) 
       { 
@@ -363,6 +467,7 @@ int solveLP(Node* aNode) {
 	printTxt(3,"Node (%d) infeasibility certificate found.", aNode->ID); 
 	break; 
       default: 
+	printTxt(3,"Node status unknown, node is pruned.");
 	aNode->feasible = false;
 	break; 
       } 
@@ -393,7 +498,7 @@ int isIntFeasible(Node* aNode) {
 int printTxt(int level, const char* fmt, ...) {
 
     if(level<=printLevel_) {
-        std::cout << level << ":";
+        std::cout  << level << ":";
         for(int i=0; i<level; ++i) {
             std::cout << "   ";
         }

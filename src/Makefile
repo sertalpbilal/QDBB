@@ -22,25 +22,27 @@ SRCFILES=qdbb.cpp \
   
 all: $(SRCFILES)
 	$(CC) $(SRCFILES) -o qdbb $(INCLUDES) $(LIBS)
-        # ./qdbb asset rule priority selection limit cut/iter iter C     R
-	#              0-5  0-1      0-1       >0    -1, >0   >0
-	# ./qdbb 10    1    0        0         100   2        1    10000 0.06
+	# ./qdbb asset rule priority selection limit cut/iter iter C     R    tolerance**
+	#              0-5  0-1      0-1       >0    -1, >0   >0              >0
+	# ./qdbb 10    1    0        0         100   2        1    10000 0.06 
 
-# rule	0: no cut
-#	1: always cut
-#	2: fading cut
-#	3: root-heuristic cut
-# priority	0: most fractional
-#		1: best return value
-# selection	0: always cut
-#		1: only-deep cut
-# limit		maximum allowed cut (for rule 1 and 2)
-# cut/iter	cut per iteration (for rule 1)
-#		-1: no limit
-# iter		maximum cut generation iteration
-# C		capital
-# R		expected return
-
+# argv  #
+# 1	# number of variables (asset)
+# 2	# rule	0: no cut
+# 	#	1: always cut
+#	#	2: fading cut
+#	#	3: root-heuristic cut
+# 3	# priority	0: most fractional
+#	#		1: best return value
+# 4	# selection	0: always cut
+# 	#		1: only-deep cut
+# 5	# limit		maximum allowed cut (for rule 1 and 2)
+# 6	# cut/iter	cut per iteration (for rule 1)
+#	#		-1: no limit
+# 7	# iter		maximum cut generation iteration
+# 8	# C		capital
+# 9	# R		expected return
+# 10    # tolerance: objective tolerance for fading cuts //// **not yet implemented
 
 
 #$(CC) -c $(SRCFILES) -o simopt.o
