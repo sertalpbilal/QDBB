@@ -45,11 +45,6 @@ all: $(SRCFILES)
 # 10    # tolerance: objective tolerance for fading cuts //// **not yet implemented
 
 
-#$(CC) -c $(SRCFILES) -o simopt.o
-#$(CC) simopt.o busproblem.c -o simopt $(LIBS)
-#call problem as follows:
-#simopt rspline rsp.opt
-#simopt paris option.prs
 
 clean:
 	rm -rf *.o *~ qdbb
