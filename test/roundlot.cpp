@@ -6,6 +6,7 @@ extern double* pBar;
 extern double** DhalfVT;
 extern double** VDhalfinv;
 extern double* mu;
+int localN;
 
 
 int createProblem(MSKtask_t* task, char* argv[])
@@ -18,6 +19,7 @@ int createProblem(MSKtask_t* task, char* argv[])
 
   // Create variables
   int N = atoi(argv[1]);
+  localN = N;
   double R = atof(argv[9]); //0.02;
   double mu_0 = 0;
   double C = atof(argv[8]); //100000;
@@ -207,7 +209,55 @@ int createProblem(MSKtask_t* task, char* argv[])
   
   //*originalProblem = &task;
   
+  delete[] rowindex;
+  delete[] colindex;
+  delete[] valindex;
+  
+  for(int i=0; i<N; i++) {
+    delete[] Q[i];
+  }
+  delete[] Q;
+  delete[] M;
+  delete[] P;
+  delete[] mu;
+  delete[] phat;
+  delete[] mpbar;
+  
+  for(int i=0; i<N+1; i++) {
+    delete[] Q_hat[i];
+  }
+  delete[] Q_hat;
+  delete[] ct;
+  
+  // Not sure if it should be here!!!!!
+  /*
+  delete[] pBar;
+  delete[] DhalfVt; -- matrix
+  delete[] VDhalfinv; -- matrix
+  
+  */
   
   return 1;
   
 }
+
+int deleteProblem() {
+  
+  for(int i=0; i<localN+1; ++i) {
+    
+    delete[] DhalfVT[i];
+    delete[] VDhalfinv[i];
+    
+  }
+  
+  delete[] DhalfVT;
+  delete[] VDhalfinv;
+  delete[] pBar;
+  
+  
+  return 1;
+}
+
+
+
+

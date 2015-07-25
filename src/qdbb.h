@@ -43,12 +43,9 @@ struct Node {
     int totalCuts;
 };
 
-
- 
-
-
 int startBB(char* argv[]);
-int createProblem(MSKtask_t* originalProblem, char* argv[]);
+int createProblem(MSKtask_t* originalProblem, char* argv[]); // In problem-specific file
+int deleteProblem();                                         // In problem-specific file
 int createNewNode(Node* parent, Node** newNode, int varID, double bound, int lower);
 int printTxt(int level, const char* fmt, ...);
 int selectNode(Node** activeNode);
@@ -59,5 +56,7 @@ int cut(Node* activeNode);
 int eliminateNodes();
 int nextCut(int N, int heuType, double* soln, std::vector< std::vector<int> > *usedCuts);
 int addNewCut(MSKtask_t env, int asset, double value, int option);
+int finishBB();
+int deleteNode(Node* aNode);
 
 #endif
