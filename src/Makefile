@@ -16,15 +16,29 @@ DEBUG=0
 CC=g++ $(CFLAGS)
 SRCFILES=qdbb.cpp \
         ../test/portfolio.cpp
+SRCCARDINALITY=qdbb.cpp \
+        ../test/portfolio.cpp \
+        ../test/cardinality.cpp
+SRCROUNDLOT=qdbb.cpp \
+        ../test/portfolio.cpp \
+        ../test/roundlot.cpp
 #test_main.cpp
 #$(SRCDIR)/portfolio.cpp
 
-  
 all: $(SRCFILES)
 	$(CC) $(SRCFILES) -o qdbb $(INCLUDES) $(LIBS)
 	# ./qdbb asset rule priority selection limit cut/iter iter C     R    tolerance**
 	#              0-5  0-1      0-1       >0    -1, >0   >0              >0
 	# ./qdbb 10    1    0        0         100   2        1    10000 0.06 
+
+roundlot: $(SRCROUNDLOT)
+	$(CC) $(SRCROUNDLOT) -o roundlot $(INCLUDES) $(LIBS)
+            # ./roundlot asset rule priority selection limit cut/iter iter C     R    tolerance**
+	#                  0-5  0-1      0-1       >0    -1, >0   >0              >0
+	# ./roundlot 10    1    0        0         100   2        1    10000 0.06 
+
+cardinality: $(SRCCARDINALITY)
+	$(CC) $(SRCCARDINALITY) -o roundlot $(INCLUDES) $(LIBS)
 
 # argv  #
 # 1	# number of variables (asset)

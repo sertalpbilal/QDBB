@@ -1,42 +1,11 @@
  
-#include <iostream>
-#include <limits>
-#include <vector>
-#include <string>
-#include <cmath>
-#include <stdio.h>
-#include <stdarg.h>
-#include <ctime>
-#include "mosek.h"
-
-/* 
-
-TODO: Solution may not be feasible (OPTIMAL), if so, return
-
- */
-
-
-
-struct Node {
-  //attributes(const string& name, bool value) : name(name), value(value) {}
-    int         ID;
-    double      nodeObj;
-    double      lowerBound;
-    double*     nodeSoln;
-    bool        feasible;
-    bool        intfeasible;
-    bool        eliminated;
-    MSKtask_t   problem;
-    Node*       parent;
-  std::vector< std::vector <int> > usedCuts;
-    int depth;
-    int totalCuts;
-};
-
+#include "qdbb.h"
+ 
 static void MSKAPI printstr(void *handle, MSKCONST char str[])
 {
   printf("%s",str);
 }
+
 
 MSKtask_t oProblem = NULL; // Original problem instance
 double globalUpperBound_ = std::numeric_limits<double>::infinity();
@@ -54,7 +23,7 @@ int nodesProcessed_ = 0;
 int totalNodes_ = 0;
 int totalCutsGenerated_ = 0;
 int totalCutsApplied_ = 0;
-int totalSocoSolved_ = 0;
+int totalSocoSolved_ = 0; 
 int totalFadingCuts_ = 0;
 int totalNodeFadingCuts_ = 0;
 double objectiveTolerance_ = 1e-4;
@@ -66,21 +35,6 @@ std::vector< Node* > allNodeList_; // Keeps pointer of all nodes for destructor
 int printLevel_ = 2;
 
 int firstFeasibleObjective_ = 0;
-
-int startBB(char* argv[]);
-int createProblem(MSKtask_t* originalProblem, char* argv[]);
-int createNewNode(Node* parent, Node** newNode, int varID, double bound, int lower);
-int printTxt(int level, const char* fmt, ...);
-int selectNode(Node** activeNode);
-int solveLP(Node* aNode);
-int isIntFeasible(Node* aNode);
-int branch(Node* activeNode);
-int cut(Node* activeNode);
-int eliminateNodes();
-int nextCut(int N, int heuType, double* soln, std::vector< std::vector<int> > *usedCuts);
-int addNewCut(MSKtask_t env, int asset, double value, int option);
-
-
 
 int main(int argc, char* argv[]) {
 
