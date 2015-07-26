@@ -1,7 +1,7 @@
 
 #include "qdbb.h"
 
-#define OUTLEV 5
+#define OUTLEV 1
 
 #define printText(flag, ...) if (flag <= OUTLEV) { printf("%d: ",flag); printf(__VA_ARGS__); printf("\n"); }
 
@@ -34,6 +34,8 @@ int N = 0; /* number of assets, always 1 less than numVars */
 Node* root;
 std::vector< Node* > nodeList_;
 std::vector< Node* > allNodeList_; // Keeps pointer of all nodes for destructor
+
+extern int PROBLEMCODE;
 
 int firstFeasibleObjective_ = 0;
 
@@ -195,6 +197,12 @@ int startBB(char* argv[]) {
 
   // Summary report
   printText(1, "========== SUMMARY ==========");
+  if(globalUpperBound_== std::numeric_limits<double>::infinity()) {
+    printText(1, "Problem is infeasible :(");
+    return 0;
+  }
+  
+  
   printText(1, "Best objective value: %f", globalUpperBound_);
   printText(1, "Values: ");
   for(int i=0; i<N; i++) {
@@ -221,11 +229,12 @@ int branch(Node* activeNode) {
 
   // find most fractional
   int asset = 0;
-  double mostfrac = 0;
-  for(int i=0; i<N; ++i) {
+  double initval = activeNode->nodeSoln[0];
+  double mostfrac = fmin(initval - floor(initval), ceil(initval) - initval);
+  for(int i=1; i<N; ++i) {
     double cValue = activeNode->nodeSoln[i];
     double smallest = fmin(cValue - floor(cValue), ceil(cValue) - cValue);
-    if(smallest >= mostfrac) {
+    if(smallest > mostfrac) {
       asset = i;
       mostfrac = smallest;
     }
@@ -311,7 +320,6 @@ int eliminateNodes() {
 int createNewNode(Node* parent, Node** newNode, int varID, double bound, int lower) {
   int status = 0;
   
-
   if(!parent) {
     
     
@@ -348,13 +356,16 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
     //MSK_analyzeproblem(parent->problem, MSK_STREAM_LOG);
     
     //MSK_analyzeproblem(newProblem, MSK_STREAM_LOG);
-    
+    int corrector = 0;
+    if(PROBLEMCODE==2) {
+      corrector = N;
+    }
     
     if(varID!=-1) {
       MSK_chgbound ( 
       newProblem,         //MSKtask_t    task, 
       MSK_ACC_VAR,        //MSKaccmodee  accmode, 
-      varID+1,            //MSKint32t    i, 
+      varID+corrector+1,            //MSKint32t    i, 
       lower,              //MSKint32t    lower, 
       1,                  //MSKint32t    finite, 
       bound               //MSKrealt     value); 
@@ -436,7 +447,11 @@ int solveLP(Node* aNode) {
         aNode -> lowerBound = primalobj;
       }
       //aNode -> nodeSoln = (double*) malloc(N*sizeof(double));
-      MSK_getsolutionslice(mtask, MSK_SOL_ITR, MSK_SOL_ITEM_XX, 1, N+1, aNode->nodeSoln);
+      if(PROBLEMCODE==1) {
+        MSK_getsolutionslice(mtask, MSK_SOL_ITR, MSK_SOL_ITEM_XX, 1, N+1, aNode->nodeSoln);
+      } else if(PROBLEMCODE==2) {
+        MSK_getsolutionslice(mtask, MSK_SOL_ITR, MSK_SOL_ITEM_XX, N+1, 2*N+1, aNode->nodeSoln);
+      }
       
       // std::cout << primalobj << std::endl;
       printText(3, "Node (%d) Optimal Objective: %f", aNode->ID, aNode->nodeObj);
@@ -472,6 +487,8 @@ int solveLP(Node* aNode) {
 int isIntFeasible(Node* aNode) {
   bool intfeasible = true;
   for(int i=0; i<N; ++i) {
+    
+    
     
     //if( std::modf(aNode->nodeSoln[i], &intpart) >= 1e-5) {
     if(abs(round(aNode->nodeSoln[i])-aNode->nodeSoln[i]) >= 1e-6) {

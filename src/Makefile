@@ -38,7 +38,11 @@ roundlot: $(SRCROUNDLOT)
 	# ./roundlot 10    1    0        0         100   2        1    10000 0.06 
 
 cardinality: $(SRCCARDINALITY)
-	$(CC) $(SRCCARDINALITY) -o roundlot $(INCLUDES) $(LIBS)
+	$(CC) $(SRCCARDINALITY) -o cardinal $(INCLUDES) $(LIBS)
+	# ./cardinal asset rule priority selection limit cut/iter iter C     R     k   tolerance**
+	#                  0-5  0-1      0-1       >0    -1, >0   >0                   >0
+	# ./cardinal 10    1    0        0         100   2        1    10000 0.06  4
+
 
 # argv  #
 # 1	# number of variables (asset)
@@ -46,6 +50,8 @@ cardinality: $(SRCCARDINALITY)
 # 	#	1: always cut
 #	#	2: fading cut
 #	#	3: root-heuristic cut
+#           #           4: not implemented
+#           #           5: all cuts at root node (exhaustive binary!)
 # 3	# priority	0: most fractional
 #	#		1: best return value
 # 4	# selection	0: always cut
@@ -56,7 +62,8 @@ cardinality: $(SRCCARDINALITY)
 # 7	# iter		maximum cut generation iteration
 # 8	# C		capital
 # 9	# R		expected return
-# 10    # tolerance: objective tolerance for fading cuts //// **not yet implemented
+# 10    # k             cardinality number
+# 11    # tolerance: objective tolerance for fading cuts //// **not yet implemented
 
 
 

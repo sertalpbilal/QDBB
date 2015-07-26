@@ -8,6 +8,8 @@ extern double** VDhalfinv;
 extern double* mu;
 int localN;
 
+int PROBLEMCODE = 1;
+
 
 int createProblem(MSKtask_t* task, char* argv[])
 {
