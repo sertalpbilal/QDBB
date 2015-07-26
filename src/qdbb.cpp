@@ -24,6 +24,7 @@ int totalCutsApplied_ = 0;
 int totalSocoSolved_ = 0; 
 int totalFadingCuts_ = 0;
 int totalNodeFadingCuts_ = 0;
+int bestNodeNumber_ = 0;
 double objectiveTolerance_ = 1e-4;
 int numVars_ = 0;
 int N = 0; /* number of assets, always 1 less than numVars */
@@ -93,11 +94,16 @@ int startBB(char* argv[]) {
       solveLP(activeNode);
       totalSocoSolved_++;
       if(!activeNode->feasible) {
-        goto endofcutting;
+	printText(4, "Node's (%d) relaxation is infeasible. Pruning...", activeNode->ID);
+        goto finaldecision;
       }
       isIntFeasible(activeNode);
       if(activeNode->intfeasible) {
-        goto endofcutting;
+        goto finaldecision;
+      }
+      if(activeNode->nodeObj > globalUpperBound_) {
+	printText(3, "Node (%d) has a higher objective than upper bound, pruning...", activeNode->ID);
+	goto finaldecision;
       }
       if(cutRule_>0) { // B&C
         int totalCut = 0;
@@ -105,6 +111,7 @@ int startBB(char* argv[]) {
         //double prevObjective = activeNode->nodeObj;
         if(cutRule_==1) {
           while(iterN < iterationLimit_) {
+	    printText(4, "Node (%d) cut iteration %d of %d", activeNode->ID, iterN+1, iterationLimit_);
             int iterCut = 0;
             while(iterCut < cutPerIteration_ && activeNode->totalCuts < cutLimit_) {
               int isNewCut = cut(activeNode);
@@ -150,16 +157,20 @@ int startBB(char* argv[]) {
       continue;
     }
 
-endofcutting:
+  endofcutting:
 
     if( activeNode->feasible) { isIntFeasible(activeNode); }
+
+  finaldecision:
 
     if( activeNode->feasible && activeNode->intfeasible) {
       if(activeNode->nodeObj < globalUpperBound_) {
         globalUpperBound_ = activeNode->nodeObj;
         bestSoln_ = activeNode->nodeSoln;
+	printText(1, "New upper bound obtained, best objective: %f, node (%d)", globalUpperBound_,activeNode->ID);
+	bestNodeNumber_ = activeNode->ID;
         eliminateNodes();
-        printText(1, "Best objective value: %f", globalUpperBound_);
+        
       }
     } else if(activeNode->feasible && !activeNode->intfeasible) {
       // branch
@@ -191,6 +202,7 @@ endofcutting:
   if(cutRule_==2) {
     printText(1, "Average effective cuts: %f", (double) totalFadingCuts_ / totalNodeFadingCuts_);
   }
+  printText(1,"Optimal node: %d", bestNodeNumber_);
   printText(1,"Done...");
   return status;
 }
@@ -209,16 +221,19 @@ int branch(Node* activeNode) {
       mostfrac = smallest;
     }
   }
-
+  
+  printText(2,"Branching, var(%d)<=%.0f or var(%d)>=%.0f",asset,floor(activeNode->nodeSoln[asset]),asset, ceil(activeNode->nodeSoln[asset]));
+  
   // Call newNode twice
 
   // Left - Less than bound
   Node* leftNode =  new Node; // (Node*) malloc(sizeof(Node));
   createNewNode(activeNode /*parent*/, &leftNode, asset /*var id*/,  floor(activeNode->nodeSoln[asset])/* bound */, 0 /* lower */);
+  printText(2,"New node (%d) is child of (%d) with var(%d)<=%.0f",totalNodes_-1, activeNode->ID, asset, floor(activeNode->nodeSoln[asset])); 
   // Right - Greater than bound
   Node* rightNode = new Node; //(Node*) malloc(sizeof(Node));
   createNewNode(activeNode /*parent*/, &rightNode, asset /*var id*/, ceil(activeNode->nodeSoln[asset]) /* bound */, 1 /* lower */);
-  
+  printText(2,"New node (%d) is child of (%d) with var(%d)>=%.0f",totalNodes_-1, activeNode->ID, asset, ceil(activeNode->nodeSoln[asset]));
   
   // Add them to active list
   // Done in create
@@ -231,8 +246,22 @@ int cut(Node* activeNode) {
   
   int variableForCut = nextCut(N, cutPriority_, activeNode->nodeSoln, &(activeNode->usedCuts)); 
   
+  
+
   if(variableForCut >= 0 ) {
+
+    double currsoln = activeNode->nodeSoln[variableForCut];
+    if(abs(currsoln-round(currsoln))<1e-2) {
+      printText(3,"Node (%d) variable %d is close to integer %.3f, cut is not generated",activeNode->ID,variableForCut,currsoln);
+      return 0;
+    } 
+
+
+
     status = addNewCut(activeNode->problem, variableForCut+1, activeNode->nodeSoln[variableForCut], cutSelection_);
+    if(status>0) {
+      printText(3, "Node (%d) New cut for variable %d is added, value: %f", activeNode->ID, variableForCut, activeNode->nodeSoln[variableForCut]);
+    }
   }
   
   return status;
@@ -258,11 +287,14 @@ int selectNode(Node** activeNode) {
 }
 
 int eliminateNodes() {
+  int totaln = 0;
   for(unsigned int i=0; i<nodeList_.size(); i++) {
     if(nodeList_[i]->lowerBound >= globalUpperBound_) {
       nodeList_[i]->eliminated = true;
+      totaln++;
     }
   }
+  printText(3, "%d nodes are eliminated due to new upper bound", totaln);
 
   return 1;
 }
@@ -297,7 +329,7 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
     
   } else {
     
-    printText(3, "New node is created");
+    //printText(3, "New node is created");
     
     // Add branch constraint here
     // Change problem
@@ -359,11 +391,12 @@ int solveLP(Node* aNode) {
   MSKtask_t mtask = aNode->problem;
   
   MSK_putintparam(mtask, MSK_IPAR_MIO_MODE, MSK_MIO_MODE_IGNORED); // make it LP
-
-
+  MSK_putintparam(mtask, MSK_IPAR_INTPNT_MAX_ITERATIONS, 20000);
+  MSK_putintparam(mtask, MSK_IPAR_BI_IGNORE_MAX_ITER, MSK_ON);
   //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
-
-  MSK_optimize(mtask);
+  MSKrescodee r;
+  MSKrescodee trmcode;
+    r = MSK_optimizetrm(mtask,&trmcode);
   printText(6,"Problem is solved with  MOSEK");
   
   MSK_solutionsummary(mtask,MSK_STREAM_LOG);
@@ -372,12 +405,20 @@ int solveLP(Node* aNode) {
   MSK_getsolsta (mtask, MSK_SOL_ITR, &solsta); 
   
   MSKrealt primalobj;
-  
+
+  //printf("TRMCODE: %d\n", trmcode);
+  if(trmcode==10006) {
+    //solsta = MSK_SOL_STA_OPTIMAL;
+    //printf("Stall!\n");
+
+  }
   
   switch( solsta ) 
   { 
   case MSK_SOL_STA_OPTIMAL: 
   case MSK_SOL_STA_NEAR_OPTIMAL: 
+  case MSK_SOL_STA_PRIM_FEAS:
+  case MSK_SOL_STA_INTEGER_OPTIMAL:
     { 
       aNode->feasible = true;
       MSK_getprimalobj(mtask, MSK_SOL_ITR, &primalobj);
@@ -387,10 +428,6 @@ int solveLP(Node* aNode) {
       }
       //aNode -> nodeSoln = (double*) malloc(N*sizeof(double));
       MSK_getsolutionslice(mtask, MSK_SOL_ITR, MSK_SOL_ITEM_XX, 1, N+1, aNode->nodeSoln);
-      
-      //for(int j=0; j<N; ++j) {
-      //  std::cout << "Variable " << j << " value: " << aNode->nodeSoln[j] << std::endl;
-      //}
       
       // std::cout << primalobj << std::endl;
       printText(3, "Node (%d) Optimal Objective: %f", aNode->ID, aNode->nodeObj);
@@ -403,11 +440,17 @@ int solveLP(Node* aNode) {
     aNode->feasible = false;
     printText(3,"Node (%d) infeasibility certificate found.", aNode->ID); 
     break; 
+  case MSK_SOL_STA_UNKNOWN: 
   default: 
-    printText(3,"Node status unknown, node is pruned.");
+    
+      
     aNode->feasible = false;
-    break; 
+    printText(3,"Node status unknown %d, node is pruned.",solsta);
+
+    break;
   } 
+
+  //
   
   //MSK_solutionsummary (mtask, MSK_STREAM_LOG);
   
@@ -424,13 +467,13 @@ int isIntFeasible(Node* aNode) {
     //if( std::modf(aNode->nodeSoln[i], &intpart) >= 1e-5) {
     if(abs(round(aNode->nodeSoln[i])-aNode->nodeSoln[i]) >= 1e-6) {
       intfeasible = false;
-      printText(5,"Integer infeasibility at asset %d, value: %f",i, aNode->nodeSoln[i]);
+      printText(5,"Integer infeasibility at variable %d, value: %f",i, aNode->nodeSoln[i]);
     }
   }
   
   aNode->intfeasible = intfeasible;
   if(intfeasible) {
-    printText(4,"Node %d is integer feasible",aNode->ID);
+    printText(4,"Node %d is integer feasible with objective: %f",aNode->ID, aNode->nodeObj);
   } else {
     printText(4,"Node %d is NOT integer feasible",aNode->ID);
   }
