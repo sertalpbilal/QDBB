@@ -33,7 +33,7 @@ all: $(SRCFILES)
 
 roundlot: $(SRCROUNDLOT)
 	$(CC) $(SRCROUNDLOT) -o roundlot $(INCLUDES) $(LIBS)
-            # ./roundlot asset rule priority selection limit cut/iter iter C     R    tolerance**
+	# ./roundlot asset rule priority selection limit cut/iter iter C     R    tolerance**
 	#                  0-5  0-1      0-1       >0    -1, >0   >0              >0
 	# ./roundlot 10    1    0        0         100   2        1    10000 0.06 
 

@@ -43,7 +43,7 @@ COLUMNS
     X11       C3        1e-1
     1         'MARKER'                 'INTEND'
 RHS
-    rhs       C2        -6e-2
+    rhs       C2        -8e-2
     rhs       C3        1e+0
 RANGES
 BOUNDS

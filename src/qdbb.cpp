@@ -13,6 +13,8 @@ int cutPriority_ = 0; // 0: default, most fractional, 1: best-value
 int cutRule_ = 1; // 0: default, no cut, 1: always cut, 2: fading-cuts, 3: root-heuristic cut
 // 4: min depth for cut, 5: only if deep cut
 double deepCutThreshold_ = 1e-1; // deep-cut threshold value
+double bestImprovement_ = 0;
+double totalImprovement_ = 0;
 int cutSelection_ = 1;
 int cutLimit_ = 1; // max number of cuts to add, default is 1
 int cutPerIteration_ = 3; // number of cuts to be added at each relaxation
@@ -28,10 +30,10 @@ int bestNodeNumber_ = 0;
 double objectiveTolerance_ = 1e-4;
 int numVars_ = 0;
 int N = 0; /* number of assets, always 1 less than numVars */
+/* TODO Change N to number of variables! */
 Node* root;
 std::vector< Node* > nodeList_;
 std::vector< Node* > allNodeList_; // Keeps pointer of all nodes for destructor
-int printLevel_ = 2;
 
 int firstFeasibleObjective_ = 0;
 
@@ -43,7 +45,7 @@ int main(int argc, char* argv[]) {
 
   numVars_ = atoi(argv[1])+1;
   N = numVars_ - 1;
-
+  
   cutRule_ = atoi(argv[2]);
   cutPriority_ = atoi(argv[3]);
   cutSelection_ = atoi(argv[4]);
@@ -109,6 +111,7 @@ int startBB(char* argv[]) {
         int totalCut = 0;
         int iterN = 0;
         //double prevObjective = activeNode->nodeObj;
+	double firstObjective = activeNode->nodeObj; // Objective at relaxation
         if(cutRule_==1) {
           while(iterN < iterationLimit_) {
 	    printText(4, "Node (%d) cut iteration %d of %d", activeNode->ID, iterN+1, iterationLimit_);
@@ -149,6 +152,11 @@ int startBB(char* argv[]) {
         } else {
           printText(3, "Undefined cutting rule. Please check readme.");
         }
+	double objImprovement = activeNode->nodeObj -  firstObjective;
+	if(objImprovement  > bestImprovement_) {
+	  bestImprovement_ = objImprovement;
+	}
+	totalImprovement_ += objImprovement;
       }
 
       //cut(activeNode);
@@ -157,8 +165,7 @@ int startBB(char* argv[]) {
       continue;
     }
 
-  endofcutting:
-
+  
     if( activeNode->feasible) { isIntFeasible(activeNode); }
 
   finaldecision:
@@ -202,6 +209,8 @@ int startBB(char* argv[]) {
   if(cutRule_==2) {
     printText(1, "Average effective cuts: %f", (double) totalFadingCuts_ / totalNodeFadingCuts_);
   }
+  printText(1, "Total objective improvement: %f", totalImprovement_);
+  printText(1, "Best objective improvement: %f", bestImprovement_);
   printText(1,"Optimal node: %d", bestNodeNumber_);
   printText(1,"Done...");
   return status;
@@ -394,9 +403,9 @@ int solveLP(Node* aNode) {
   MSK_putintparam(mtask, MSK_IPAR_INTPNT_MAX_ITERATIONS, 20000);
   MSK_putintparam(mtask, MSK_IPAR_BI_IGNORE_MAX_ITER, MSK_ON);
   //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
-  MSKrescodee r;
+
   MSKrescodee trmcode;
-    r = MSK_optimizetrm(mtask,&trmcode);
+  MSK_optimizetrm(mtask,&trmcode);
   printText(6,"Problem is solved with  MOSEK");
   
   MSK_solutionsummary(mtask,MSK_STREAM_LOG);
