@@ -1,7 +1,7 @@
 
 #include "qdbb.h"
 
-#define OUTLEV 1
+#define OUTLEV 5
 
 #define printText(flag, ...) if (flag <= OUTLEV) { printf("%d: ",flag); printf(__VA_ARGS__); printf("\n"); }
 
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
   MSK_maketask(env,0,0,&task);
   
   oProblem = task;
-   
+  
   startBB(argv);
   
   finishBB();
@@ -98,7 +98,7 @@ int startBB(char* argv[]) {
       solveLP(activeNode);
       totalSocoSolved_++;
       if(!activeNode->feasible) {
-	printText(4, "Node's (%d) relaxation is infeasible. Pruning...", activeNode->ID);
+        printText(4, "Node's (%d) relaxation is infeasible. Pruning...", activeNode->ID);
         goto finaldecision;
       }
       isIntFeasible(activeNode);
@@ -106,17 +106,17 @@ int startBB(char* argv[]) {
         goto finaldecision;
       }
       if(activeNode->nodeObj > globalUpperBound_) {
-	printText(3, "Node (%d) has a higher objective than upper bound, pruning...", activeNode->ID);
-	goto finaldecision;
+        printText(3, "Node (%d) has a higher objective than upper bound, pruning...", activeNode->ID);
+        goto finaldecision;
       }
       if(cutRule_>0) { // B&C
         int totalCut = 0;
         int iterN = 0;
         //double prevObjective = activeNode->nodeObj;
-	double firstObjective = activeNode->nodeObj; // Objective at relaxation
+        double firstObjective = activeNode->nodeObj; // Objective at relaxation
         if(cutRule_==1) {
           while(iterN < iterationLimit_) {
-	    printText(4, "Node (%d) cut iteration %d of %d", activeNode->ID, iterN+1, iterationLimit_);
+            printText(4, "Node (%d) cut iteration %d of %d", activeNode->ID, iterN+1, iterationLimit_);
             int iterCut = 0;
             while(iterCut < cutPerIteration_ && activeNode->totalCuts < cutLimit_) {
               int isNewCut = cut(activeNode);
@@ -130,7 +130,8 @@ int startBB(char* argv[]) {
             totalSocoSolved_++;
             iterN++;
           }
-        } else if(cutRule_ == 2) {
+        } 
+        else if(cutRule_ == 2) {
           double prevObjective = activeNode->nodeObj + 2*objectiveTolerance_;
           double newObjective = activeNode->nodeObj;
           totalNodeFadingCuts_++;
@@ -151,14 +152,31 @@ int startBB(char* argv[]) {
             prevObjective = newObjective;
             newObjective = activeNode -> nodeObj;
           }
-        } else {
+        } 
+        else if(cutRule_ == 5) { // all cuts at root node!
+          
+          if(activeNode->ID==0) { // If it is root node
+          
+            for(int i=0; i<N; i++) {
+              int isNewCut = cut(activeNode);
+              activeNode->totalCuts += isNewCut;
+              totalCutsGenerated_ ++;
+              totalCutsApplied_ += isNewCut;
+            }
+            solveLP(activeNode);
+            totalSocoSolved_++;
+            
+          }
+          
+          
+        }else {
           printText(3, "Undefined cutting rule. Please check readme.");
         }
-	double objImprovement = activeNode->nodeObj -  firstObjective;
-	if(objImprovement  > bestImprovement_) {
-	  bestImprovement_ = objImprovement;
-	}
-	totalImprovement_ += objImprovement;
+        double objImprovement = activeNode->nodeObj -  firstObjective;
+        if(objImprovement  > bestImprovement_) {
+          bestImprovement_ = objImprovement;
+        }
+        totalImprovement_ += objImprovement;
       }
 
       //cut(activeNode);
@@ -167,19 +185,19 @@ int startBB(char* argv[]) {
       continue;
     }
 
-  
+    
     if( activeNode->feasible) { isIntFeasible(activeNode); }
 
-  finaldecision:
+finaldecision:
 
     if( activeNode->feasible && activeNode->intfeasible) {
       if(activeNode->nodeObj < globalUpperBound_) {
         globalUpperBound_ = activeNode->nodeObj;
         bestSoln_ = activeNode->nodeSoln;
-	printText(1, "New upper bound obtained, best objective: %f, node (%d)", globalUpperBound_,activeNode->ID);
-	bestNodeNumber_ = activeNode->ID;
+        printText(1, "New upper bound obtained, best objective: %f, node (%d)", globalUpperBound_,activeNode->ID);
+        bestNodeNumber_ = activeNode->ID;
         eliminateNodes();
-        
+        MSK_writedata(activeNode->problem, "bestnode.lp");
       }
     } else if(activeNode->feasible && !activeNode->intfeasible) {
       // branch
@@ -263,9 +281,6 @@ int cut(Node* activeNode) {
   int status = 0;
   
   int variableForCut = nextCut(N, cutPriority_, activeNode->nodeSoln, &(activeNode->usedCuts)); 
-  
-  
-
   if(variableForCut >= 0 ) {
 
     double currsoln = activeNode->nodeSoln[variableForCut];
@@ -279,6 +294,8 @@ int cut(Node* activeNode) {
     status = addNewCut(activeNode->problem, variableForCut+1, activeNode->nodeSoln[variableForCut], cutSelection_);
     if(status>0) {
       printText(3, "Node (%d) New cut for variable %d is added, value: %f", activeNode->ID, variableForCut, activeNode->nodeSoln[variableForCut]);
+    } else {
+      printText(3, "Node (%d) Cut generation failed, variable %d, value: %f", activeNode->ID, variableForCut, activeNode->nodeSoln[variableForCut]);
     }
   }
   
@@ -412,7 +429,7 @@ int solveLP(Node* aNode) {
   
   MSK_putintparam(mtask, MSK_IPAR_MIO_MODE, MSK_MIO_MODE_IGNORED); // make it LP
   MSK_putintparam(mtask, MSK_IPAR_INTPNT_MAX_ITERATIONS, 20000);
-  MSK_putintparam(mtask, MSK_IPAR_BI_IGNORE_MAX_ITER, MSK_ON);
+  //MSK_putintparam(mtask, MSK_IPAR_BI_IGNORE_MAX_ITER, MSK_ON);
   //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
 
   MSKrescodee trmcode;
@@ -467,9 +484,9 @@ int solveLP(Node* aNode) {
   case MSK_SOL_STA_UNKNOWN: 
   default: 
     
-      
+    
     aNode->feasible = false;
-    printText(3,"Node status unknown %d, node is pruned.",solsta);
+    printText(3,"Node status unknown %d, term code: %d, node is pruned.",solsta,trmcode);
 
     break;
   } 

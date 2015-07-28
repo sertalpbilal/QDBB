@@ -774,40 +774,84 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
   else if(PROBLEMCODE==2) { // CARDINALITY // TODO each of these functions should go to their own file!
     
     N = (N-1)/2; // total number of variables is 2N+1
+
+    // For this cut we need to introduce 
+    // 1) a new variable
+    // 2) A linear map between z_j and variable 
+    // 3) And finally cut itself
     
-    double tau = (sqrt(1-1/k)-1)*2*k;
+
     
-    // we know that alpha is 0
-    // beta is 1
+    double kd = k+0;
+    double tau = (sqrt(1-1/kd)-1)*2*kd;
+    //tau = 0;
+    printf("\ntau: %f\n",tau);
     
-    int* zrowindex = new int[N];
-    int* zcolindex = new int[N];
-    double* zvalindex = new double[N];
-    int zbusindex = 0;
-    for(int i=1; i<N+1; i++) {
-      zrowindex[zbusindex]=N+i;
-      zcolindex[zbusindex]=N+i;
-      if(i==asset) {
-        zvalindex[zbusindex]=2+2*tau;
+    //int* zrowindex = new int[N];
+    //int* zcolindex = new int[N];
+    //double* zvalindex = new double[N];
+    //int zbusindex = 0;
+    //for(int i=1; i<N+1; i++) {
+    //  zrowindex[zbusindex]=N+i;
+    //  zcolindex[zbusindex]=N+i;
+    //  if(i==asset) {
+    //    printf("\n asset: %d\n",asset);
+    //    zvalindex[zbusindex]=2+2*tau;
+    //  } else {
+    //    zvalindex[zbusindex]=2;
+    //  }
+    //  zbusindex++;
+    //}
+    
+    
+    //int cutidx;
+    
+    // 1) new variable
+    int numvar;
+    MSK_getnumvar (env, &numvar); 
+    MSK_appendvars (env, 1);
+    MSK_putvarbound(env, numvar, MSK_BK_LO, 0, MSK_INFINITY);
+    MSK_putvarname(env, numvar, "u");
+    
+    // 2) Linear map
+    int numcon;
+    MSK_getnumcon(env, &numcon);
+    MSK_appendcons(env, 1);
+    MSK_putaij(env, numcon, numvar, 1);
+    double sqtau = -sqrt(fabs(1+tau));
+    MSK_putaij(env, numcon, N+asset, sqtau);
+    double linmaprhs = - (sqrt(fabs(1+tau))/(1+tau)) * tau / 2;
+    MSK_putconbound(env, numcon, MSK_BK_RA, linmaprhs, linmaprhs);
+    
+    
+    // 3) Conic Constraint DCC 
+    int* csub = new int[N];
+    int loopindex = 1;
+    csub[0] = numvar;
+    for(int i=0; i<N; i++) {
+      if(i==asset-1) {
+	// skip it
       } else {
-        zvalindex[zbusindex]=2;
+	csub[loopindex] = N+i+1;
+	loopindex++;
       }
-      zbusindex++;
     }
-    
-    int cutidx;
-    
-    MSK_getnumcon(env,&cutidx); 
-    MSK_appendcons(env,1); 
+    int r = MSK_appendcone(env, MSK_CT_QUAD, 0.0, N, csub);
     
     
-    MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, k); 
-    MSK_putqconk(env, cutidx, N, zrowindex, zcolindex, zvalindex);
-    MSK_putaij(env, cutidx, N+asset, -tau);
+
     
-    delete[] zrowindex;
-    delete[] zcolindex;
-    delete[] zvalindex;
+    //MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, k); 
+    //MSK_putqconk(env, cutidx, N, zrowindex, zcolindex, zvalindex);
+    //MSK_putaij(env, cutidx, N+asset, -tau);
+
+    MSK_writedata(env, "aftercut.mps");
+    MSK_writedata(env, "aftercut.lp");
+    
+    //delete[] zrowindex;
+    //delete[] zcolindex;
+    //delete[] zvalindex;
+    delete[] csub;
     
     
     return 1;

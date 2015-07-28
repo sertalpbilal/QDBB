@@ -1,0 +1,268 @@
+QDBB.
+3: Root is created
+3: Active Nodes: 1
+3: Node selected: 0 (0x7889b0)
+4: Processing the node now...
+3: Node (0) Optimal Objective: 53567.104674
+5: Integer infeasibility at variable 0, value: 0.330447
+5: Integer infeasibility at variable 6, value: 5.964405
+5: Integer infeasibility at variable 7, value: 2.608850
+5: Integer infeasibility at variable 9, value: 1.096298
+4: Node 0 is NOT integer feasible
+4: Node (0) cut iteration 1 of 1
+3: Node (0) New cut for variable 7 is added, value: 2.608850
+3: Node (0) New cut for variable 0 is added, value: 0.330447
+3: Node (0) Optimal Objective: 53662.663463
+5: Integer infeasibility at variable 0, value: 0.002260
+5: Integer infeasibility at variable 6, value: 6.051921
+5: Integer infeasibility at variable 7, value: 2.788258
+5: Integer infeasibility at variable 9, value: 1.157559
+4: Node 0 is NOT integer feasible
+3: Upper bound: inf, current objective: 53662.663463, branching...
+2: Branching, var(7)<=2 or var(7)>=3
+2: New node (1) is child of (0) with var(7)<=2
+2: New node (2) is child of (0) with var(7)>=3
+3: Active Nodes: 2
+3: Node selected: 2 (0x7fc9f800cca0)
+4: Processing the node now...
+3: Node (2) Optimal Objective: 56134.177002
+4: Node 2 is integer feasible with objective: 56134.177002
+1: New upper bound obtained, best objective: 56134.177002, node (2)
+3: 0 nodes are eliminated due to new upper bound
+3: Active Nodes: 1
+3: Node selected: 1 (0x7fc9f8001ec0)
+4: Processing the node now...
+3: Node (1) Optimal Objective: 54453.122560
+5: Integer infeasibility at variable 0, value: 1.000117
+5: Integer infeasibility at variable 1, value: 0.182501
+5: Integer infeasibility at variable 6, value: 5.918670
+5: Integer infeasibility at variable 8, value: 0.000002
+5: Integer infeasibility at variable 9, value: 0.898710
+4: Node 1 is NOT integer feasible
+4: Node (1) cut iteration 1 of 1
+3: Node (1) New cut for variable 1 is added, value: 0.182501
+3: Node (1) New cut for variable 9 is added, value: 0.898710
+3: Node (1) Optimal Objective: 54488.791235
+5: Integer infeasibility at variable 0, value: 0.999518
+5: Integer infeasibility at variable 1, value: 0.203262
+5: Integer infeasibility at variable 4, value: 0.000001
+5: Integer infeasibility at variable 5, value: 0.000002
+5: Integer infeasibility at variable 6, value: 5.797327
+5: Integer infeasibility at variable 7, value: 1.999999
+5: Integer infeasibility at variable 8, value: 0.000027
+5: Integer infeasibility at variable 9, value: 0.999861
+4: Node 1 is NOT integer feasible
+3: Upper bound: 56134.177002, current objective: 54488.791235, branching...
+2: Branching, var(1)<=0 or var(1)>=1
+2: New node (3) is child of (1) with var(1)<=0
+2: New node (4) is child of (1) with var(1)>=1
+3: Active Nodes: 2
+3: Node selected: 4 (0x7fc9f8023d70)
+4: Processing the node now...
+3: Node (4) Optimal Objective: 56270.042909
+5: Integer infeasibility at variable 0, value: 0.000007
+5: Integer infeasibility at variable 6, value: 6.258208
+5: Integer infeasibility at variable 7, value: 1.563738
+5: Integer infeasibility at variable 9, value: 1.178046
+4: Node 4 is NOT integer feasible
+3: Node (4) has a higher objective than upper bound, pruning...
+3: Active Nodes: 1
+3: Node selected: 3 (0x7fc9f8003d40)
+4: Processing the node now...
+3: Node (3) Optimal Objective: 54524.824106
+5: Integer infeasibility at variable 0, value: 1.000252
+5: Integer infeasibility at variable 6, value: 5.783189
+5: Integer infeasibility at variable 8, value: 0.216554
+5: Integer infeasibility at variable 9, value: 1.000001
+4: Node 3 is NOT integer feasible
+4: Node (3) cut iteration 1 of 1
+3: Node (3) New cut for variable 6 is added, value: 5.783189
+3: Node (3) New cut for variable 8 is added, value: 0.216554
+3: Node (3) Optimal Objective: 54589.754534
+5: Integer infeasibility at variable 0, value: 0.917953
+5: Integer infeasibility at variable 6, value: 5.867953
+5: Integer infeasibility at variable 8, value: 0.245430
+5: Integer infeasibility at variable 9, value: 0.968663
+4: Node 3 is NOT integer feasible
+3: Upper bound: 56134.177002, current objective: 54589.754534, branching...
+2: Branching, var(8)<=0 or var(8)>=1
+2: New node (5) is child of (3) with var(8)<=0
+2: New node (6) is child of (3) with var(8)>=1
+3: Active Nodes: 2
+3: Node selected: 6 (0x7fc9f8039be0)
+4: Processing the node now...
+3: Node (6) Optimal Objective: 56502.586107
+5: Integer infeasibility at variable 0, value: 0.000026
+5: Integer infeasibility at variable 6, value: 6.167220
+5: Integer infeasibility at variable 7, value: 1.643463
+5: Integer infeasibility at variable 9, value: 1.189291
+4: Node 6 is NOT integer feasible
+3: Node (6) has a higher objective than upper bound, pruning...
+3: Active Nodes: 1
+3: Node selected: 5 (0x7fc9f800aec0)
+4: Processing the node now...
+3: Node (5) Optimal Objective: 54806.800136
+5: Integer infeasibility at variable 0, value: 1.219335
+5: Integer infeasibility at variable 2, value: 0.000001
+5: Integer infeasibility at variable 3, value: 0.000001
+5: Integer infeasibility at variable 4, value: 0.000008
+5: Integer infeasibility at variable 5, value: 0.084665
+5: Integer infeasibility at variable 6, value: 5.741568
+5: Integer infeasibility at variable 7, value: 1.999999
+5: Integer infeasibility at variable 9, value: 0.946366
+4: Node 5 is NOT integer feasible
+4: Node (5) cut iteration 1 of 1
+3: Node (5) New cut for variable 5 is added, value: 0.084665
+3: Node (5) New cut for variable 9 is added, value: 0.946366
+3: Node (5) Optimal Objective: 54806.801043
+5: Integer infeasibility at variable 0, value: 1.219331
+5: Integer infeasibility at variable 2, value: 0.000001
+5: Integer infeasibility at variable 3, value: 0.000001
+5: Integer infeasibility at variable 4, value: 0.000008
+5: Integer infeasibility at variable 5, value: 0.084612
+5: Integer infeasibility at variable 6, value: 5.741568
+5: Integer infeasibility at variable 7, value: 1.999999
+5: Integer infeasibility at variable 9, value: 0.946369
+4: Node 5 is NOT integer feasible
+3: Upper bound: 56134.177002, current objective: 54806.801043, branching...
+2: Branching, var(6)<=5 or var(6)>=6
+2: New node (7) is child of (5) with var(6)<=5
+2: New node (8) is child of (5) with var(6)>=6
+3: Active Nodes: 2
+3: Node selected: 8 (0x7fc9f8052d70)
+4: Processing the node now...
+3: Node (8) Optimal Objective: 55013.663036
+5: Integer infeasibility at variable 0, value: 0.807135
+5: Integer infeasibility at variable 5, value: 0.016182
+5: Integer infeasibility at variable 9, value: 0.953864
+4: Node 8 is NOT integer feasible
+4: Node (8) cut iteration 1 of 1
+3: Node (8) New cut for variable 5 is added, value: 0.016182
+3: Node (8) variable 4 is close to integer 0.000, cut is not generated
+3: Node (8) Optimal Objective: 55013.662984
+5: Integer infeasibility at variable 0, value: 0.807135
+5: Integer infeasibility at variable 5, value: 0.016186
+5: Integer infeasibility at variable 9, value: 0.953864
+4: Node 8 is NOT integer feasible
+3: Upper bound: 56134.177002, current objective: 55013.662984, branching...
+2: Branching, var(0)<=0 or var(0)>=1
+2: New node (9) is child of (8) with var(0)<=0
+2: New node (10) is child of (8) with var(0)>=1
+3: Active Nodes: 3
+3: Node selected: 9 (0x7fc9f8061e70)
+4: Processing the node now...
+3: Node (9) Optimal Objective: 56300.878767
+5: Integer infeasibility at variable 2, value: 0.000009
+5: Integer infeasibility at variable 3, value: 0.000013
+5: Integer infeasibility at variable 4, value: 0.000062
+5: Integer infeasibility at variable 5, value: 0.101590
+5: Integer infeasibility at variable 6, value: 6.392791
+5: Integer infeasibility at variable 7, value: 1.999992
+5: Integer infeasibility at variable 9, value: 1.059569
+4: Node 9 is NOT integer feasible
+3: Node (9) has a higher objective than upper bound, pruning...
+3: Active Nodes: 2
+3: Node selected: 10 (0x7fc9f806a670)
+4: Processing the node now...
+3: Node (10) Optimal Objective: 55050.624768
+5: Integer infeasibility at variable 0, value: 1.000289
+5: Integer infeasibility at variable 2, value: 0.000015
+5: Integer infeasibility at variable 3, value: 0.000012
+5: Integer infeasibility at variable 4, value: 0.000083
+5: Integer infeasibility at variable 5, value: 0.031314
+5: Integer infeasibility at variable 6, value: 6.000040
+5: Integer infeasibility at variable 7, value: 1.999985
+5: Integer infeasibility at variable 9, value: 0.847920
+4: Node 10 is NOT integer feasible
+4: Node (10) cut iteration 1 of 1
+3: Node (10) variable 2 is close to integer 0.000, cut is not generated
+3: Node (10) variable 3 is close to integer 0.000, cut is not generated
+3: Node (10) Optimal Objective: 55050.624528
+5: Integer infeasibility at variable 0, value: 1.000289
+5: Integer infeasibility at variable 2, value: 0.000015
+5: Integer infeasibility at variable 3, value: 0.000012
+5: Integer infeasibility at variable 4, value: 0.000083
+5: Integer infeasibility at variable 5, value: 0.031316
+5: Integer infeasibility at variable 6, value: 6.000040
+5: Integer infeasibility at variable 7, value: 1.999985
+5: Integer infeasibility at variable 9, value: 0.847920
+4: Node 10 is NOT integer feasible
+3: Upper bound: 56134.177002, current objective: 55050.624528, branching...
+2: Branching, var(9)<=0 or var(9)>=1
+2: New node (11) is child of (10) with var(9)<=0
+2: New node (12) is child of (10) with var(9)>=1
+3: Active Nodes: 3
+3: Node selected: 11 (0x7fc9f8075d50)
+4: Processing the node now...
+3: Node (11) Optimal Objective: 57245.335685
+5: Integer infeasibility at variable 0, value: 1.048194
+5: Integer infeasibility at variable 6, value: 6.975903
+5: Integer infeasibility at variable 7, value: 1.975900
+4: Node 11 is NOT integer feasible
+3: Node (11) has a higher objective than upper bound, pruning...
+3: Active Nodes: 2
+3: Node selected: 12 (0x7fc9f8083b30)
+4: Processing the node now...
+3: Node (12) Optimal Objective: 56906.687760
+5: Integer infeasibility at variable 2, value: 0.000004
+5: Integer infeasibility at variable 4, value: 0.000005
+5: Integer infeasibility at variable 5, value: 0.000016
+5: Integer infeasibility at variable 7, value: 1.380956
+4: Node 12 is NOT integer feasible
+3: Node (12) has a higher objective than upper bound, pruning...
+3: Active Nodes: 1
+3: Node selected: 7 (0x7fc9f8037130)
+4: Processing the node now...
+3: Node (7) Optimal Objective: 55949.043906
+5: Integer infeasibility at variable 0, value: 1.666666
+5: Integer infeasibility at variable 9, value: 1.333334
+4: Node 7 is NOT integer feasible
+4: Node (7) cut iteration 1 of 1
+3: Node (7) variable 5 is close to integer 0.000, cut is not generated
+3: Node (7) variable 4 is close to integer 0.000, cut is not generated
+3: Node (7) Optimal Objective: 55949.043895
+5: Integer infeasibility at variable 0, value: 1.666666
+5: Integer infeasibility at variable 9, value: 1.333334
+4: Node 7 is NOT integer feasible
+3: Upper bound: 56134.177002, current objective: 55949.043895, branching...
+2: Branching, var(0)<=1 or var(0)>=2
+2: New node (13) is child of (7) with var(0)<=1
+2: New node (14) is child of (7) with var(0)>=2
+3: Active Nodes: 2
+3: Node selected: 14 (0x7fc9f809dea0)
+4: Processing the node now...
+3: Node (14) Optimal Objective: 56599.445895
+5: Integer infeasibility at variable 7, value: 1.799999
+5: Integer infeasibility at variable 9, value: 1.200000
+4: Node 14 is NOT integer feasible
+3: Node (14) has a higher objective than upper bound, pruning...
+3: Active Nodes: 1
+3: Node selected: 13 (0x7fc9f808f330)
+4: Processing the node now...
+3: Node (13) Optimal Objective: 57130.472043
+5: Integer infeasibility at variable 5, value: 0.309400
+5: Integer infeasibility at variable 9, value: 1.690479
+4: Node 13 is NOT integer feasible
+3: Node (13) has a higher objective than upper bound, pruning...
+3: Active Nodes: 0
+1: ========== SUMMARY ==========
+1: Best objective value: 56134.177002
+1: Values: 
+1: 	1: 0.000000
+1: 	2: 0.000000
+1: 	3: 0.000000
+1: 	4: 0.000000
+1: 	5: 0.000000
+1: 	6: 0.000000
+1: 	7: 5.000000
+1: 	8: 3.000000
+1: 	9: 0.000000
+1: 	10: 2.000000
+1: Number of nodes processed: 15
+1: Number of nodes generated: 15
+1: Total SOCO solved: 22
+1: Total time elapsed: 2.770000 seconds
+1: Total cuts generated: 14
+1: Total cuts applied: 9
+1: Optimal node: 2
+1: Done...
