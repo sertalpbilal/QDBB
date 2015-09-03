@@ -5,6 +5,14 @@
 
 #define printText(flag, ...) if (flag <= OUTLEV) { printf("%d: ",flag); printf(__VA_ARGS__); printf("\n"); }
 
+
+static void MSKAPI printstr(void *handle, MSKCONST char str[]) 
+{ 
+  printf("%s",str); 
+} 
+
+
+
 MSKtask_t oProblem = NULL; // Original problem instance
 double globalUpperBound_ = std::numeric_limits<double>::infinity();
 double* bestSoln_;
@@ -265,14 +273,18 @@ int branch(Node* activeNode) {
   // Left - Less than bound
   Node* leftNode =  new Node; // (Node*) malloc(sizeof(Node));
   createNewNode(activeNode /*parent*/, &leftNode, asset /*var id*/,  floor(activeNode->nodeSoln[asset])/* bound */, 0 /* lower */);
-  printText(2,"New node (%d) is child of (%d) with var(%d)<=%.0f",totalNodes_-1, activeNode->ID, asset, floor(activeNode->nodeSoln[asset])); 
+  printText(2,"New node (%d) is child of (%d) with var(%d)<=%.2f",totalNodes_-1, activeNode->ID, asset, floor(activeNode->nodeSoln[asset])); 
   // Right - Greater than bound
   Node* rightNode = new Node; //(Node*) malloc(sizeof(Node));
   createNewNode(activeNode /*parent*/, &rightNode, asset /*var id*/, ceil(activeNode->nodeSoln[asset]) /* bound */, 1 /* lower */);
-  printText(2,"New node (%d) is child of (%d) with var(%d)>=%.0f",totalNodes_-1, activeNode->ID, asset, ceil(activeNode->nodeSoln[asset]));
+  printText(2,"New node (%d) is child of (%d) with var(%d)>=%.2f",totalNodes_-1, activeNode->ID, asset, ceil(activeNode->nodeSoln[asset]));
   
   // Add them to active list
   // Done in create
+
+  printToFile(leftNode);
+  printToFile(rightNode);
+  
   
   return status;
 }
@@ -360,6 +372,8 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
     (*newNode) -> nodeSoln = (double*) malloc(N*sizeof(double));
     
     printText(3, "Root is created");
+
+    printToFile(*newNode);
     
   } else {
     
@@ -425,12 +439,21 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
 int solveLP(Node* aNode) {
   int status = 0;
   
-  MSKtask_t mtask = aNode->problem;
+  MSKtask_t originaltask = aNode->problem;
+
+  MSKtask_t mtask;
+  //MSK_clonetask(originaltask, &mtask);
+  mtask = originaltask;
   
   MSK_putintparam(mtask, MSK_IPAR_MIO_MODE, MSK_MIO_MODE_IGNORED); // make it LP
-  MSK_putintparam(mtask, MSK_IPAR_INTPNT_MAX_ITERATIONS, 20000);
+  MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_LINDEP_USE, MSK_OFF);
+  MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_USE, MSK_PRESOLVE_MODE_OFF);
+  //MSK_putintparam(mtask, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_CONIC);
+  //MSK_putintparam(mtask, MSK_IPAR_INTPNT_MAX_ITERATIONS, 20000);
   //MSK_putintparam(mtask, MSK_IPAR_BI_IGNORE_MAX_ITER, MSK_ON);
   //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
+
+  
 
   MSKrescodee trmcode;
   MSK_optimizetrm(mtask,&trmcode);
@@ -456,7 +479,7 @@ int solveLP(Node* aNode) {
   case MSK_SOL_STA_NEAR_OPTIMAL: 
   case MSK_SOL_STA_PRIM_FEAS:
   case MSK_SOL_STA_INTEGER_OPTIMAL:
-    { 
+     
       aNode->feasible = true;
       MSK_getprimalobj(mtask, MSK_SOL_ITR, &primalobj);
       aNode->nodeObj = primalobj;
@@ -473,13 +496,17 @@ int solveLP(Node* aNode) {
       // std::cout << primalobj << std::endl;
       printText(3, "Node (%d) Optimal Objective: %f", aNode->ID, aNode->nodeObj);
       break; 
-    } 
+    
   case MSK_SOL_STA_DUAL_INFEAS_CER: 
+    printText(3,"Node (%d) dual infeasibility certificate found.", aNode->ID); 
   case MSK_SOL_STA_PRIM_INFEAS_CER: 
-  case MSK_SOL_STA_NEAR_DUAL_INFEAS_CER: 
-  case MSK_SOL_STA_NEAR_PRIM_INFEAS_CER:
+    //case MSK_SOL_STA_NEAR_DUAL_INFEAS_CER: 
+    //case MSK_SOL_STA_NEAR_PRIM_INFEAS_CER:
     aNode->feasible = false;
-    printText(3,"Node (%d) infeasibility certificate found.", aNode->ID); 
+    printText(3,"Node (%d) primal infeasibility certificate found.", aNode->ID); 
+    char fname[80];
+    sprintf(fname, "../test/infnode%d.mps", aNode->ID);
+    MSK_writedata(mtask, fname);
     break; 
   case MSK_SOL_STA_UNKNOWN: 
   default: 
@@ -564,4 +591,25 @@ int deleteNode(Node* aNode) {
   
   return 1;
 }
+
+int printToFile(Node* aNode) {
+  
+  // Get problem info
+  // Print it to file
+
+  int fno = aNode->ID;
+  char fname[80];
+  sprintf(fname, "../test/node%d.mps", fno);
+  MSK_writedata(aNode->problem, fname);
+
+  return 1;
+  
+}
+
+
+
+
+
+
+
 

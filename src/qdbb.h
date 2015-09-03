@@ -18,6 +18,7 @@ using namespace std;
 #include <sstream>
 #include <exception>
 #include <math.h>
+#include <string.h>
 
 /* 
 
@@ -58,5 +59,6 @@ int nextCut(int N, int heuType, double* soln, std::vector< std::vector<int> > *u
 int addNewCut(MSKtask_t env, int asset, double value, int option);
 int finishBB();
 int deleteNode(Node* aNode);
+int printToFile(Node* aNode);
 
 #endif

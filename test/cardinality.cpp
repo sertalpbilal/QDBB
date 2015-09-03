@@ -22,6 +22,8 @@ int createProblem(MSKtask_t* task, char* argv[])
   double C = atof(argv[8]); // Capital, e.g. 100000;
   k = atoi(argv[10]);
 
+  int cardinaltype = atoi(argv[11]);
+
   double **Q = new double*[N];
   for(int i = 0; i < N; ++i) {
     Q[i] = new double[N];
@@ -69,7 +71,7 @@ int createProblem(MSKtask_t* task, char* argv[])
     r = MSK_putaij(*task, 0, j+1, mu[j]);
   }
   // RHS
-  r = MSK_putconbound(*task, 0, MSK_BK_RA, Rt, Rt); 
+  r = MSK_putconbound(*task, 0, MSK_BK_LO, Rt, MSK_INFINITY); 
   
   // Row 1 to N: x/z relation
   for(int j=0; j<N; j++) {
@@ -101,24 +103,63 @@ int createProblem(MSKtask_t* task, char* argv[])
   MSK_putqconk(*task, N+2, (N+1)*N/2, rowindex, colindex, valindex);
   r = MSK_putconbound(*task, N+2, MSK_BK_UP, -MSK_INFINITY, 0); 
   
-  
-  
-  
-  // Row N+3: z'z <= k
   int* zrowindex = new int[N];
   int* zcolindex = new int[N];
   double* zvalindex = new double[N];
-  int zbusindex = 0;
-  for(int i=1; i<N+1; i++) {
-    zrowindex[zbusindex]=N+i;
-    zcolindex[zbusindex]=N+i;
-    zvalindex[zbusindex]=2;
-    zbusindex++;
-  }
-  MSK_putqconk(*task, N+3, N, zrowindex, zcolindex, zvalindex);
-  r = MSK_putconbound(*task, N+3, MSK_BK_UP, -MSK_INFINITY, k);
 
+
+  if(cardinaltype==1) {  // Quadratic cardinality constraint
   
+    // Row N+3: z'z <= k
+    
+    int zbusindex = 0;
+    for(int i=1; i<N+1; i++) {
+      zrowindex[zbusindex]=N+i;
+      zcolindex[zbusindex]=N+i;
+      zvalindex[zbusindex]=2;
+      zbusindex++;
+    }
+    MSK_putqconk(*task, N+3, N, zrowindex, zcolindex, zvalindex);
+    r = MSK_putconbound(*task, N+3, MSK_BK_UP, -MSK_INFINITY, k);
+
+  }
+  else if(cardinaltype==0) {  // Linear cardinality constraint
+    // Linear 
+    for(int j=0; j<N; j++) {
+      r = MSK_putaij(*task, N+3, N+j+1, 1);
+    }
+    // RHS
+    r = MSK_putconbound(*task, N+3, MSK_BK_UP, -MSK_INFINITY, k); 
+  }
+  else if(cardinaltype==2) { // Conic problem
+
+    MSK_appendvars(*task, 2); // v_1 and v_2
+    MSK_appendcons(*task, 2); // v_1 = (k-1)/2  and  v2 = (k+1)/2
+    
+    MSK_putvarname(*task, 2*N+1, "v1");
+    MSK_putvarname(*task, 2*N+2, "v2");
+
+    MSK_putvarbound(*task, 2*N+1, MSK_BK_LO, 0, MSK_INFINITY);
+    MSK_putvarbound(*task, 2*N+2, MSK_BK_LO, 0, MSK_INFINITY);
+
+    int* csub = new int[N+2];
+    csub[0] = 2*N+2;
+    csub[1] = 2*N+1;
+    for(int i=0; i<N; i++) { csub[i+2] = N+i+1; }
+    MSK_appendcone(*task, MSK_CT_QUAD, 0.0, N+2, csub);
+
+    delete[] csub;
+
+    MSK_putaij(*task, N+4, 2*N+1, 1);
+    MSK_putaij(*task, N+5, 2*N+2, 1);
+    double copyk = k+0;
+    MSK_putconbound(*task, N+4, MSK_BK_RA, (copyk-1)/2, (copyk-1)/2);
+    MSK_putconbound(*task, N+5, MSK_BK_RA, (copyk+1)/2, (copyk+1)/2);
+    
+
+  }
+
+  MSK_toconic (*task);
   MSK_writedata(*task, "CardinalityOriginal.mps");
   MSK_writedata(*task, "CardinalityOriginal.lp");
   string solver("MOSEK");

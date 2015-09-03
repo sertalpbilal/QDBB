@@ -39,9 +39,9 @@ roundlot: $(SRCROUNDLOT)
 
 cardinality: $(SRCCARDINALITY)
 	$(CC) $(SRCCARDINALITY) -o cardinal $(INCLUDES) $(LIBS)
-	# ./cardinal asset rule priority selection limit cut/iter iter C     R     k   tolerance**
-	#                  0-5  0-1      0-1       >0    -1, >0   >0                   >0
-	# ./cardinal 10    1    0        0         100   2        1    10000 0.06  4
+	# ./cardinal asset rule priority selection limit cut/iter iter C     R     k   cardinalitytype    tolerance**
+	#                  0-5  0-1      0-1       >0    -1, >0   >0                   0 or 1 or 2        >0
+	# ./cardinal 10    1    0        0         100   2        1    10000 0.06  4   2
 
 
 # argv  #
@@ -64,11 +64,12 @@ cardinality: $(SRCCARDINALITY)
 # 9	# R		expected return
 # 10    # k             cardinality number
 # 11    # tolerance: objective tolerance for fading cuts //// **not yet implemented
-
+# 11    # cardinality type: 0: QC, 1: LC, 2: CONIC
 
 
 clean:
 	rm -rf *.o *~ qdbb
+	rm -rf ../test/*.int ../test/*.mps ../test/*.lp 
 	#rm -rf $(SRCDIR)/*.o $(SRCDIR)/*~ 
 
 
