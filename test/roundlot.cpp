@@ -6,26 +6,38 @@ extern double* pBar;
 extern double** DhalfVT;
 extern double** VDhalfinv;
 extern double* mu;
-int localN;
-
-int PROBLEMCODE = 1;
+extern int localN;
 
 
-int createProblem(MSKtask_t* task, char* argv[])
+
+extern int N_;
+extern double Rt_;
+extern int k_;
+extern int cardinaltype_;
+extern double C_;
+
+extern int PROBLEMCODE; // = 1;
+
+
+int createRoundlot(MSKtask_t* task)
 {
-
+  PROBLEMCODE = 1;
   // if(argc >= 7) {
 	// std::cout << "Error (1): Argument number is not correct.";
 	// cout << argv[0] << endl;
 	// }
 
   // Create variables
-  int N = atoi(argv[1]);
+  //int N = atoi(argv[1]);
+  int N = N_;
   localN = N;
-  double R = atof(argv[9]); //0.02;
+  //double R = atof(argv[9]); //0.02;
+  double R = Rt_;
   double mu_0 = 0;
-  double C = atof(argv[8]); //100000;
+  //double C = atof(argv[8]); //100000;
+  double C = C_;
 
+  
   double **Q = new double*[N];
   for(int i = 0; i < N; ++i) {
     Q[i] = new double[N];
@@ -243,7 +255,7 @@ int createProblem(MSKtask_t* task, char* argv[])
   
 }
 
-int deleteProblem() {
+int deleteRoundlot() {
   
   for(int i=0; i<localN+1; ++i) {
     

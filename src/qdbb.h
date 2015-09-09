@@ -19,6 +19,7 @@ using namespace std;
 #include <exception>
 #include <math.h>
 #include <string.h>
+#include <unistd.h>
 
 /* 
 
@@ -44,8 +45,8 @@ struct Node {
     int totalCuts;
 };
 
-int startBB(char* argv[]);
-int createProblem(MSKtask_t* originalProblem, char* argv[]); // In problem-specific file
+int startBB(int argc, char* argv[]);
+int createProblem(MSKtask_t* originalProblem, int argc, char* argv[]); // In problem-specific file
 int deleteProblem();                                         // In problem-specific file
 int createNewNode(Node* parent, Node** newNode, int varID, double bound, int lower);
 int printTxt(int level, const char* fmt, ...);

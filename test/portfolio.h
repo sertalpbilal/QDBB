@@ -21,6 +21,12 @@ int addDCyC(ENV env, PROB & prob, int asset, double value, string &solver, doubl
 void matMult( double**  mA,  double**  mB, double** mC, int sizeN);
 void initEigTransform(int N, double** Q_hat, double* pBar1, double** DhalfVT, double** VDhalfinv);
 
+// Problem specific
+int createRoundlot(MSKtask_t* task);
+int createCardinality(MSKtask_t* task);
+int deleteRoundlot();
+int deleteCardinality();
+
 
 #endif
 

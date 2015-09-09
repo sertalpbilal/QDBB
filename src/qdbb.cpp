@@ -1,7 +1,7 @@
 
 #include "qdbb.h"
 
-#define OUTLEV 2
+#define OUTLEV 5
 
 #define printText(flag, ...) if (flag <= OUTLEV) { printf("%d: ",flag); printf(__VA_ARGS__); printf("\n"); }
 
@@ -17,10 +17,11 @@ MSKtask_t oProblem = NULL; // Original problem instance
 double globalUpperBound_ = std::numeric_limits<double>::infinity();
 int finiteUpperBound_ = 0;
 double* bestSoln_;
-int branchingRule_ = 0; // 0: most fractional, 1: index-based, 2: value-based
+int branchingRule_ = 0; // 0: most fractional, 1: highest cost, 2: random, 3:bonami 
 int cutPriority_ = 0; // 0: default, most fractional, 1: best-value
 int cutRule_ = 1; // 0: default, no cut, 1: always cut, 2: fading-cuts, 3: root-heuristic cut
 // 4: min depth for cut, 5: only if deep cut
+int searchRule_ = 0; // 0: default, depth first, left, 1: depth first right, 2: breadth first, 3: best (lower bound)
 double deepCutThreshold_ = 1e-1; // deep-cut threshold value
 double bestImprovement_ = 0;
 double totalImprovement_ = 0;
@@ -73,7 +74,7 @@ int main(int argc, char* argv[]) {
   
   oProblem = task;
   
-  startBB(argv);
+  startBB(argc, argv);
   
   finishBB();
   
@@ -83,9 +84,9 @@ int main(int argc, char* argv[]) {
   return 1;
 }
 
-int startBB(char* argv[]) {
+int startBB(int argc, char* argv[]) {
   int status = 0;
-  createProblem(&oProblem, argv);
+  createProblem(&oProblem, argc, argv);
   
   root = new Node; //(Node *) malloc(sizeof(Node));
   createNewNode(0, &root, -1 /*var id*/, 0 /* bound */, 0 /* lower */);

@@ -3,26 +3,35 @@
 
 extern double* mu;
 
-int localN;
+extern int localN;
 extern int k;
 
-int PROBLEMCODE = 2;
+extern int N_;
+extern double Rt_;
+extern int k_;
+extern int cardinaltype_;
+extern int PROBLEMCODE;// = 2;
 
 /*  @short Creates the cardinality constrained portfolio optimization problem
  *  @param[in] task  Problem instance (MOSEK)
  *  @param[in] argv  User input at runtime
  */
-int createProblem(MSKtask_t* task, char* argv[])
+int createCardinality(MSKtask_t* task)
 {
-
+  PROBLEMCODE = 2;
+  printf("Working\n");
   // Create variables
-  int N = atoi(argv[1]);
-  localN = N; // number of assets, total vars: 2*N+1 [t x1...xn z1...zn]
-  double Rt = atof(argv[9]); // Desired return rate, e.g. 0.06
-  double C = atof(argv[8]); // Capital, e.g. 100000;
-  k = atoi(argv[10]);
+  //int N = atoi(argv[1]);
+  localN = N_; // number of assets, total vars: 2*N+1 [t x1...xn z1...zn]
+  int N = N_;
+  //double Rt = atof(argv[9]); // Desired return rate, e.g. 0.06
+  double Rt = Rt_;
+  // double C = atof(argv[8]); // Capital, e.g. 100000;
+  //k = atoi(argv[10]);
+  k = k_;
+  //int cardinaltype = atoi(argv[11]);
+  int cardinaltype = cardinaltype_;
 
-  int cardinaltype = atoi(argv[11]);
 
   double **Q = new double*[N];
   for(int i = 0; i < N; ++i) {
@@ -39,6 +48,10 @@ int createProblem(MSKtask_t* task, char* argv[])
   
   r = MSK_appendcons(*task,1+N+1+2); //return, x<=z, sum to 1, x'Qx<=t, and z'z <= k
   r = MSK_appendvars(*task,2*N+1);
+
+  if(r) {
+    r = r;
+  }
   
   // Give Variable Bounds
   r = MSK_putvarbound(*task,0,MSK_BK_LO,0,+MSK_INFINITY);
@@ -178,7 +191,7 @@ int createProblem(MSKtask_t* task, char* argv[])
   return 1;
 }
 
-int deleteProblem() {
+int deleteCardinality() {
   
   delete[] mu;
   
