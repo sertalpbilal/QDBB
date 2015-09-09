@@ -160,8 +160,8 @@ int createProblem(MSKtask_t* task, char* argv[])
   }
 
   MSK_toconic (*task);
-  MSK_writedata(*task, "CardinalityOriginal.mps");
-  MSK_writedata(*task, "CardinalityOriginal.lp");
+  MSK_writedata(*task, "result/CardinalityOriginal.mps");
+  //MSK_writedata(*task, "CardinalityOriginal.lp");
   string solver("MOSEK");
   
   delete[] rowindex;

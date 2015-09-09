@@ -504,8 +504,8 @@ void MOSEK_addDCyC(MSKtask_t env, MSKrescodee & problem, int asset, double value
   
   // cout << "CP4" << endl;  
   
-  MSK_writedata(env, "afterCut.lp");
-  MSK_writedata(env, "afterCut.mps");
+  //MSK_writedata(env, "afterCut.lp");
+  //MSK_writedata(env, "afterCut.mps");
   
   // CPLEX STUFF
   /* IloExpr quadCut(env);
@@ -556,7 +556,7 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
   
   char tbuffer[80];
 
-  sprintf(tbuffer, "beforeCut%d.mps", asset);
+  sprintf(tbuffer, "result/beforeCut%d.mps", asset);
   
   //MSK_writedata(env, "beforeCut.lp");
   MSK_writedata(env, tbuffer); // "beforeCut.mps");
@@ -773,6 +773,7 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
     delete[] newp;
     delete[] pDV;
     
+    return 1;
   
   } 
   else if(PROBLEMCODE==2) { // CARDINALITY // TODO each of these functions should go to their own file!
@@ -817,14 +818,15 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
     
     int* zrowindex = new int[N];
     int* zcolindex = new int[N];
-    double* zvalindex = new double[N];
+    double*  zvalindex = new double[N];
+    for(int i=0; i<N; i++){zrowindex[i]=0; zcolindex[i]=0; zvalindex[i]=0.0;}
     int zbusindex = 0;
-    for(int i=1; i<N+1; i++) {
+    for(int i=1; i<=N; i++) {
       zrowindex[zbusindex]=N+i;
       zcolindex[zbusindex]=N+i;
       if(i==asset) {
         //printf("\n asset: %d\n",asset);
-        zvalindex[zbusindex]=2+2*tau;
+        zvalindex[zbusindex]=2+2*tau+0.0;
       } else {
         zvalindex[zbusindex]=2;
       }
@@ -835,27 +837,29 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
     MSK_getnumcon(env,&cutidx);
     MSK_appendcons(env,1);
     
+    //printf("CutID: %d, asset: %d\n", cutidx, asset);
+
     /*
     OLD CONE CODES WERE HERE
     */
     
     
-    MSK_putaij(env, cutidx, N+asset, 0-tau);
     MSK_putqconk(env, cutidx, N, zrowindex, zcolindex, zvalindex);
+    MSK_putaij(env, cutidx, N+asset, - 0.5*tau);
     MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, k); 
     
-    //MSK_toconic(env);
+    
+
+    
+
     MSK_toconic(env);
 
   char txbuffer[80];
 
-  sprintf(txbuffer, "afterCut%d.mps", asset);
+  sprintf(txbuffer, "result/afterCut%d.mps", asset);
 
 
     MSK_writedata(env, txbuffer);
-    MSK_writedata(env, "aftercut.lp");
-    
-    //MSK_toconic(env);
 
     delete[] zrowindex;
     delete[] zcolindex;

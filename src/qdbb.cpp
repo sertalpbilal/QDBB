@@ -1,7 +1,7 @@
 
 #include "qdbb.h"
 
-#define OUTLEV 5
+#define OUTLEV 2
 
 #define printText(flag, ...) if (flag <= OUTLEV) { printf("%d: ",flag); printf(__VA_ARGS__); printf("\n"); }
 
@@ -15,6 +15,7 @@ static void MSKAPI printstr(void *handle, MSKCONST char str[])
 
 MSKtask_t oProblem = NULL; // Original problem instance
 double globalUpperBound_ = std::numeric_limits<double>::infinity();
+int finiteUpperBound_ = 0;
 double* bestSoln_;
 int branchingRule_ = 0; // 0: most fractional, 1: index-based, 2: value-based
 int cutPriority_ = 0; // 0: default, most fractional, 1: best-value
@@ -190,6 +191,7 @@ int startBB(char* argv[]) {
       //cut(activeNode);
       //solveLP(activeNode);
     } else {
+      printText(3, "Node %d is already eliminated, Current LB: %f, Global UB: %f", activeNode->ID, activeNode->lowerBound, globalUpperBound_);
       continue;
     }
 
@@ -201,6 +203,7 @@ finaldecision:
     if( activeNode->feasible && activeNode->intfeasible) {
       if(activeNode->nodeObj < globalUpperBound_) {
         globalUpperBound_ = activeNode->nodeObj;
+	finiteUpperBound_ = 1;
         bestSoln_ = activeNode->nodeSoln;
         printText(1, "New upper bound obtained, best objective: %f, node (%d)", globalUpperBound_,activeNode->ID);
         bestNodeNumber_ = activeNode->ID;
@@ -243,8 +246,8 @@ finaldecision:
   if(cutRule_==2) {
     printText(1, "Average effective cuts: %f", (double) totalFadingCuts_ / totalNodeFadingCuts_);
   }
-  printText(1, "Total objective improvement: %f", totalImprovement_);
-  printText(1, "Best objective improvement: %f", bestImprovement_);
+  printText(1, "Total objective improvement: %e", totalImprovement_);
+  printText(1, "Best objective improvement: %e", bestImprovement_);
   printText(1,"Optimal node: %d", bestNodeNumber_);
   printText(1,"Done...");
   return status;
@@ -317,15 +320,34 @@ int cut(Node* activeNode) {
 int selectNode(Node** activeNode) {
   int status = 0;
   unsigned int selected = 0;
-  int max_depth = 0;
-  *activeNode = nodeList_[0];
-  for(unsigned int i=0; i < nodeList_.size(); i++) {
-    if(nodeList_[i]->depth > max_depth && i>selected) {
-      selected = i;
-      *activeNode = nodeList_[i];
-      max_depth = nodeList_[i]->depth;
+  int max_depth = -1;
+  if(0) { // finiteUpperBound_) { // BEST BOUND
+    *activeNode = nodeList_[0];
+    double bestbound = nodeList_[0]->lowerBound;
+    for(unsigned int i=1; i < nodeList_.size(); i++) {
+      if(nodeList_[i]->lowerBound > bestbound) {
+	selected = i;
+	*activeNode = nodeList_[i];
+	bestbound = nodeList_[i]->lowerBound;
+      }
     }
   }
+  else if(0) { // BREADTH FIRST
+    *activeNode = nodeList_[0];
+    selected = 0;
+  } 
+  else   { // DEEP FIRST
+    *activeNode = nodeList_[0];
+  
+    for(unsigned int i=0; i < nodeList_.size(); i++) {
+      if(nodeList_[i]->depth >= max_depth && i>selected) {
+	selected = i;
+	*activeNode = nodeList_[i];
+	max_depth = nodeList_[i]->depth;
+      }
+    }
+  }
+  
   nodeList_.erase(nodeList_.begin()+selected);
   
   printText(3,"Node selected: %d (%p)", (*activeNode)->ID, *activeNode);
@@ -449,8 +471,8 @@ int solveLP(Node* aNode) {
   MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_LINDEP_USE, MSK_OFF);
   MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_USE, MSK_PRESOLVE_MODE_OFF);
   //MSK_putintparam(mtask, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_CONIC);
-  //MSK_putintparam(mtask, MSK_IPAR_INTPNT_MAX_ITERATIONS, 20000);
-  //MSK_putintparam(mtask, MSK_IPAR_BI_IGNORE_MAX_ITER, MSK_ON);
+  MSK_putintparam(mtask, MSK_IPAR_INTPNT_MAX_ITERATIONS, 20000);
+  MSK_putintparam(mtask, MSK_IPAR_BI_IGNORE_MAX_ITER, MSK_ON);
   //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
 
   
@@ -468,7 +490,7 @@ int solveLP(Node* aNode) {
 
   //printf("TRMCODE: %d\n", trmcode);
   if(trmcode==10006) {
-    //solsta = MSK_SOL_STA_OPTIMAL;
+    solsta = MSK_SOL_STA_OPTIMAL;
     //printf("Stall!\n");
 
   }
@@ -505,7 +527,7 @@ int solveLP(Node* aNode) {
     aNode->feasible = false;
     printText(3,"Node (%d) primal infeasibility certificate found.", aNode->ID); 
     char fname[80];
-    sprintf(fname, "../test/infnode%d.mps", aNode->ID);
+    sprintf(fname, "../test/result/infnode%d.mps", aNode->ID);
     MSK_writedata(mtask, fname);
     break; 
   case MSK_SOL_STA_UNKNOWN: 
@@ -599,7 +621,7 @@ int printToFile(Node* aNode) {
 
   int fno = aNode->ID;
   char fname[80];
-  sprintf(fname, "../test/node%d.mps", fno);
+  sprintf(fname, "../test/result/node%d.mps", fno);
   MSK_writedata(aNode->problem, fname);
 
   return 1;
