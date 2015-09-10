@@ -1,0 +1,1 @@
+./portfolio -t cardinality -a 20 -b mf -c mf -s df0 -l 100 -i 1 -p 1 -x 0 -h 0 -r 0.08 -k 5 -ct quadratic
