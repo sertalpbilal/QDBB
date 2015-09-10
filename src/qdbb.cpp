@@ -6,10 +6,10 @@
 #define printText(flag, ...) if (flag <= OUTLEV) { printf("%d: ",flag); printf(__VA_ARGS__); printf("\n"); }
 
 
-static void MSKAPI printstr(void *handle, MSKCONST char str[]) 
+/*static void MSKAPI printstr(void *handle, MSKCONST char str[]) 
 { 
   printf("%s",str); 
-} 
+  } */
 
 
 
@@ -47,24 +47,14 @@ std::vector< Node* > allNodeList_; // Keeps pointer of all nodes for destructor
 
 extern int PROBLEMCODE;
 
+
 int firstFeasibleObjective_ = 0;
 
 int main(int argc, char* argv[]) {
 
   std::cout << "QDBB." << std::endl;
   root = NULL;
-  
-
-  numVars_ = atoi(argv[1])+1;
-  N = numVars_ - 1;
-  
-  cutRule_ = atoi(argv[2]);
-  cutPriority_ = atoi(argv[3]);
-  cutSelection_ = atoi(argv[4]);
-  cutLimit_ = atoi(argv[5]);
-  cutPerIteration_ = atoi(argv[6]);
-  iterationLimit_ = atoi(argv[7]);
-  
+    
   MSKenv_t env = NULL;
   MSKtask_t task = NULL;
 
@@ -73,6 +63,8 @@ int main(int argc, char* argv[]) {
   MSK_maketask(env,0,0,&task);
   
   oProblem = task;
+
+  parseInfo(argc,argv);
   
   startBB(argc, argv);
   
@@ -80,6 +72,80 @@ int main(int argc, char* argv[]) {
   
   //MSK_deletetask (&task); 
   MSK_deleteenv (&env);
+  
+  return 1;
+}
+
+int parseInfo(int argc, char* argv[]) {
+
+  int i = 0;
+  
+  for(i=0; i<argc; i++) {
+    char* tmp = argv[i];
+    if(argv[i][0]!='-') {
+      continue;
+    }
+    printText(3,"Option %s: %s\n", argv[i],argv[i+1]);
+    
+    if(strcmp(tmp, "-v")==0 || strcmp(tmp, "-a")==0) { // Number of assets
+      N = atoi(argv[i+1]);
+      numVars_ = N + 1;
+    }
+
+    if(strcmp(tmp, "-b")==0) { // Branching rule
+      if(strcmp(argv[i+1],"mf")==0) // most fractional
+	branchingRule_ = 0;
+      else if(strcmp(argv[i+1],"hc")==0) // highest cost
+	branchingRule_ = 1;
+      else if(strcmp(argv[i+1],"random")==0) // random
+	branchingRule_ = 2;
+      else if(strcmp(argv[i+1],"bonami")==0) // bonami
+	branchingRule_ = 3;
+    }
+
+    if(strcmp(tmp, "-c")==0) { // Cut rule
+      if(strcmp(argv[i+1],"mf")==0) // most fractional
+	cutPriority_ = 0;
+      else if(strcmp(argv[i+1],"hc")==0) // highest cost
+	cutPriority_ = 1;
+      else if(strcmp(argv[i+1],"random")==0) // random
+	cutPriority_ = 2;
+      else if(strcmp(argv[i+1],"bonami")==0) // bonami
+	cutPriority_ = 3;
+    }
+
+    if(strcmp(tmp, "-s")==0) { // Search rule
+      if(strcmp(argv[i+1],"df0")==0) // Depth first - left
+	searchRule_ = 0;
+      else if(strcmp(argv[i+1],"df1")==0) // Depth first - right
+	searchRule_ = 1;
+      else if(strcmp(argv[i+1], "breadth")==0) // breadth-first
+	searchRule_ = 2;
+      else if(strcmp(argv[i+1], "best")==0) // best lower bound
+	searchRule_ = 3;
+    }
+
+    if(strcmp(tmp, "-l")==0) // cut limit
+      cutLimit_ = atoi(argv[i+1]);
+
+    if(strcmp(tmp, "-i")==0) // cut generation iteration
+      iterationLimit_ = atoi(argv[i+1]);
+
+    if(strcmp(tmp, "-p")==0) // Cut per iteration
+      cutPerIteration_ = atoi(argv[i+1]);
+
+    if(strcmp(tmp, "-x")==0) { // Termination
+      if(strcmp(argv[i+1],"0")==0) // Always cut
+	cutRule_ = 1;
+      else if(strcmp(argv[i+1],"1")==0) // Fading cuts
+	cutRule_ = 2;
+      else if(strcmp(argv[i+1],"2")==0) // Special: all cuts
+	cutRule_ = 5;
+    }
+
+  }
+
+
   
   return 1;
 }

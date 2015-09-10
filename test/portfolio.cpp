@@ -19,15 +19,6 @@ int localN;
 extern int numVars_;
 string datafolder_;
 
-// QDBB params
-extern int branchingRule_;
-extern int cutPriority_;
-extern int searchRule_;
-extern int cutLimit_;
-extern int iterationLimit_;
-extern int cutPerIteration_;
-extern int cutRule_;
-
 // Problem params
 int N_;
 double Rt_;
@@ -61,102 +52,55 @@ extern "C"
 // 
 
 
+
 // Placeholder for createProblem function
 int createProblem(MSKtask_t* task, int argc, char* argv[]) {
   
   // Parse arugments here!
   
-  size_t i = 0;
-  for(i=0; i<argc && argv[i][0] == '-'; i++) {
+  int i = 0;
+  for(i=0; i<argc; i++) {
     char* tmp = argv[i];
-    
-    if(strcmp(tmp, "-t")) { // Problem type
-      if(strcmp(argv[i+1],"roundlot"))
+    if(argv[i][0]!='-') {
+      continue;
+    }
+    if(strcmp(tmp, "-t")==0) { // Problem type
+      if(strcmp(argv[i+1],"roundlot")==0)
 	PROBLEMCODE = 1;
-      else if(strcmp(argv[i+1],"cardinality"))
+      else if(strcmp(argv[i+1],"cardinality")==0)
 	PROBLEMCODE = 2;
       else { printf("Unknown Problem Type\n"); exit(0); }
     }
 
-    if(strcmp(tmp, "-d")) { // Data file
+    if(strcmp(tmp, "-d")==0) { // Data file
       datafolder_ = argv[i+1];
     }
 
-    if(strcmp(tmp, "-a")) // Number of assets
+    if(strcmp(tmp, "-a")==0) { // Number of assets
       N_ = atoi(argv[i+1]);
-
-    if(strcmp(tmp, "-b")) { // Branching rule
-      if(strcmp(argv[i+1],"mf")) // most fractional
-	branchingRule_ = 0;
-      else if(strcmp(argv[i+1],"hc")) // highest cost
-	branchingRule_ = 1;
-      else if(strcmp(argv[i+1],"random")) // random
-	branchingRule_ = 2;
-      else if(strcmp(argv[i+1],"bonami")) // bonami
-	branchingRule_ = 3;
     }
 
-    if(strcmp(tmp, "-c")) { // Cut rule
-      if(strcmp(argv[i+1],"mf")) // most fractional
-	cutPriority_ = 0;
-      else if(strcmp(argv[i+1],"hc")) // highest cost
-	cutPriority_ = 1;
-      else if(strcmp(argv[i+1],"random")) // random
-	cutPriority_ = 2;
-      else if(strcmp(argv[i+1],"bonami")) // bonami
-	cutPriority_ = 3;
-    }
-
-    if(strcmp(tmp, "-s")) { // Search rule
-      if(strcmp(argv[i+1],"df0")) // Depth first - left
-	searchRule_ = 0;
-      else if(strcmp(argv[i+1],"df1")) // Depth first - right
-	searchRule_ = 1;
-      else if(strcmp(argv[i+1], "breadth")) // breadth-first
-	searchRule_ = 2;
-      else if(strcmp(argv[i+1], "best")) // best lower bound
-	searchRule_ = 3;
-    }
-
-    if(strcmp(tmp, "-l")) // cut limit
-      cutLimit_ = atoi(argv[i+1]);
-
-    if(strcmp(tmp, "-i")) // cut generation iteration
-      iterationLimit_ = atoi(argv[i+1]);
-
-    if(strcmp(tmp, "-p")) // Cut per iteration
-      cutPerIteration_ = atoi(argv[i+1]);
-
-    if(strcmp(tmp, "-x")) { // Termination
-      if(strcmp(argv[i+1],"0")) // Always cut
-	cutRule_ = 1;
-      else if(strcmp(argv[i+1],"1")) // Fading cuts
-	cutRule_ = 2;
-      else if(strcmp(argv[i+1],"2")) // Special: all cuts
-	cutRule_ = 5;
-    }
-
-    if(strcmp(tmp, "-r")) // return 
+    if(strcmp(tmp, "-r")==0) // return 
       Rt_ = atof(argv[i+1]);
 
-    if(strcmp(tmp, "-C")) // capital
+    if(strcmp(tmp, "-C")==0) // capital
       C_ = atof(argv[i+1]);
 
-    if(strcmp(tmp, "-k")) // cardinality
+    if(strcmp(tmp, "-k")==0) // cardinality
       k_ = atoi(argv[i+1]);
 
-    if(strcmp(tmp, "-ct")) { // cardinality type - quadratic or linear
-      if(strcmp(argv[i+1],"quadratic")) {
-	cardinaltype_ = 0;
-      }
-      else if(strcmp(argv[i+1],"linear")) {
+    if(strcmp(tmp, "-ct")==0) { // cardinality type - quadratic or linear
+      if(strcmp(argv[i+1],"quadratic")==0) {
 	cardinaltype_ = 1;
+      }
+      else if(strcmp(argv[i+1],"linear")==0) {
+	cardinaltype_ = 0;
       }
     }
 
   }
 
-
+  printf("PROBLEMCODE: %d\n", PROBLEMCODE);
   if(PROBLEMCODE==1) {
     createRoundlot(task);
   }

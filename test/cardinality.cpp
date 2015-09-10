@@ -122,7 +122,7 @@ int createCardinality(MSKtask_t* task)
 
 
   if(cardinaltype==1) {  // Quadratic cardinality constraint
-  
+    
     // Row N+3: z'z <= k
     
     int zbusindex = 0;
