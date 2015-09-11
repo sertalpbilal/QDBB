@@ -1,11 +1,3 @@
-/* 
-  Copyright: Copyright (c) MOSEK ApS, Denmark. All rights reserved.
-
-  File:      qo1.c
-
-  Purpose: To demonstrate how to solve a quadratic optimization
-              problem using the MOSEK API.
-*/
 
 #include "portfolio.h"
 
@@ -26,8 +18,11 @@ double C_;
 int k_;
 int cardinaltype_;
 
+// This value is overwritten inside createProblem
 int PROBLEMCODE = 1; // 1 for roundlot
-                 // 2 for cardinality
+                     // 2 for cardinality
+
+extern int FILEOUTPUT;
 
 extern "C"
 {
@@ -38,26 +33,8 @@ extern "C"
   int dpotri_(char *uplo, int *n, double *a, int *lda , int *info);
 }
 
-//#define NUMCON 1   /* Number of constraints.             */
-//#define NUMVAR 3   /* Number of variables.               */
-//#define NUMANZ 3   /* Number of non-zeros in A.           */
-//#define NUMQNZ 4   /* Number of non-zeros in Q.           */
-
-
-// static void MSKAPI printtxt(void          *info,
-//                             MSKCONST char *buffer)
-// {
-//   printf("%s",buffer);  
-// } /* printtxt */
-// 
-
-
-
-// Placeholder for createProblem function
 int createProblem(MSKtask_t* task, int argc, char* argv[]) {
-  
-  // Parse arugments here!
-  
+    
   int i = 0;
   for(i=0; i<argc; i++) {
     char* tmp = argv[i];
@@ -100,7 +77,7 @@ int createProblem(MSKtask_t* task, int argc, char* argv[]) {
 
   }
 
-  printf("PROBLEMCODE: %d\n", PROBLEMCODE);
+  //printf("PROBLEMCODE: %d\n", PROBLEMCODE);
   if(PROBLEMCODE==1) {
     createRoundlot(task);
   }
@@ -647,7 +624,9 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
   sprintf(tbuffer, "result/beforeCut%d.mps", asset);
   
   //MSK_writedata(env, "beforeCut.lp");
-  MSK_writedata(env, tbuffer); // "beforeCut.mps");
+  
+  if(FILEOUTPUT)
+    MSK_writedata(env, tbuffer); // "beforeCut.mps");
   
   int N = 0;
   MSK_getnumvar(env,&N);
@@ -944,12 +923,14 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
 
   char txbuffer[80];
 
-  sprintf(txbuffer, "result/afterCut%d.mps", asset);
+  if(FILEOUTPUT)
+    sprintf(txbuffer, "result/afterCut%d.mps", asset);
 
 
+  if(FILEOUTPUT)
     MSK_writedata(env, txbuffer);
 
-    delete[] zrowindex;
+  delete[] zrowindex;
     delete[] zcolindex;
     delete[] zvalindex;
     
@@ -1058,7 +1039,9 @@ int solveWithMOSEK(MSKtask_t realtask, MSKrescodee & problem, double* solution, 
   else
   filename << "aa_int_" << (N-1) << ".lp"; 
   
-  MSK_writedata(task, filename.str().c_str());
+
+  if(FILEOUTPUT)
+    MSK_writedata(task, filename.str().c_str());
   
   // cout << "CP30" << endl;
   try{
@@ -1112,7 +1095,6 @@ int nextCut(int N, int heuType, double* soln, vector< vector<int> > *usedCuts) {
     for(i=0; i<N; ++i) {
       diff[i] = mu[i];
     }
-
   }
 
   // Step 2: Find feasible cuts

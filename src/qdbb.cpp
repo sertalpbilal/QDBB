@@ -1,7 +1,10 @@
 
 #include "qdbb.h"
 
-#define OUTLEV 5
+//#define OUTLEV 5
+
+int OUTLEV = 5;
+int FILEOUTPUT = 0;
 
 #define printText(flag, ...) if (flag <= OUTLEV) { printf("%d: ",flag); printf(__VA_ARGS__); printf("\n"); }
 
@@ -46,7 +49,7 @@ std::vector< Node* > nodeList_;
 std::vector< Node* > allNodeList_; // Keeps pointer of all nodes for destructor
 
 extern int PROBLEMCODE;
-
+extern double* mu;
 
 int firstFeasibleObjective_ = 0;
 
@@ -85,12 +88,18 @@ int parseInfo(int argc, char* argv[]) {
     if(argv[i][0]!='-') {
       continue;
     }
-    printText(3,"Option %s: %s\n", argv[i],argv[i+1]);
+    //printText(3,"Option %s: %s\n", argv[i],argv[i+1]);
     
     if(strcmp(tmp, "-v")==0 || strcmp(tmp, "-a")==0) { // Number of assets
       N = atoi(argv[i+1]);
       numVars_ = N + 1;
     }
+
+    if(strcmp(tmp, "-o")==0)
+      OUTLEV = atoi(argv[i+1]);
+
+    if(strcmp(tmp, "-f")==0)
+      FILEOUTPUT = atoi(argv[i+1]);
 
     if(strcmp(tmp, "-b")==0) { // Branching rule
       if(strcmp(argv[i+1],"mf")==0) // most fractional
@@ -275,7 +284,8 @@ finaldecision:
         printText(1, "New upper bound obtained, best objective: %f, node (%d)", globalUpperBound_,activeNode->ID);
         bestNodeNumber_ = activeNode->ID;
         eliminateNodes();
-        MSK_writedata(activeNode->problem, "bestnode.lp");
+	if(FILEOUTPUT)
+	  MSK_writedata(activeNode->problem, "result/bestnode.lp");
       }
     } else if(activeNode->feasible && !activeNode->intfeasible) {
       // branch
@@ -322,19 +332,50 @@ finaldecision:
 
 int branch(Node* activeNode) {
   int status = 0;
-
-  // find most fractional
   int asset = 0;
-  double initval = activeNode->nodeSoln[0];
-  double mostfrac = fmin(initval - floor(initval), ceil(initval) - initval);
-  for(int i=1; i<N; ++i) {
-    double cValue = activeNode->nodeSoln[i];
-    double smallest = fmin(cValue - floor(cValue), ceil(cValue) - cValue);
-    if(smallest > mostfrac) {
-      asset = i;
-      mostfrac = smallest;
+
+  if(branchingRule_ == 0) { // most fractional branching
+    double initval = activeNode->nodeSoln[0];
+    double mostfrac = fmin(initval - floor(initval), ceil(initval) - initval);
+    for(int i=1; i<=N; ++i) {
+      double cValue = activeNode->nodeSoln[i];
+      double smallest = fmin(cValue - floor(cValue), ceil(cValue) - cValue);
+      if(smallest > mostfrac) {
+	asset = i;
+	mostfrac = smallest;
+      }
     }
   }
+  else if (branchingRule_ == 1) { // highest cost branching
+    double *cost = mu;
+    double hc = cost[0];
+    for(int i=1; i<=N; ++i) {
+      MSKvariabletypee vartype;
+      MSK_getvartype(activeNode->problem, i, &vartype);
+      if(vartype == MSK_VAR_TYPE_INT) {
+	if( fabs(activeNode->nodeSoln[i] - round(activeNode->nodeSoln[i])) > 1e-6) {
+	  if( cost[i] > hc ) {
+	    asset = i;
+	    hc = cost[i];
+	  }
+	}
+      }
+    
+    }
+  }
+  else if (branchingRule_ == 2) { // random
+    
+    
+    
+  } 
+  else if (branchingRule_ == 3) { // bonami 
+    
+    
+    
+  }
+
+  // find most fractional
+  
   
   printText(2,"Branching, var(%d)<=%.0f or var(%d)>=%.0f",asset,floor(activeNode->nodeSoln[asset]),asset, ceil(activeNode->nodeSoln[asset]));
   
@@ -595,7 +636,9 @@ int solveLP(Node* aNode) {
     printText(3,"Node (%d) primal infeasibility certificate found.", aNode->ID); 
     char fname[80];
     sprintf(fname, "../test/result/infnode%d.mps", aNode->ID);
-    MSK_writedata(mtask, fname);
+    
+    if(FILEOUTPUT)
+      MSK_writedata(mtask, fname);
     break; 
   case MSK_SOL_STA_UNKNOWN: 
   default: 
@@ -689,7 +732,9 @@ int printToFile(Node* aNode) {
   int fno = aNode->ID;
   char fname[80];
   sprintf(fname, "../test/result/node%d.mps", fno);
-  MSK_writedata(aNode->problem, fname);
+
+  if(FILEOUTPUT)  
+    MSK_writedata(aNode->problem, fname);
 
   return 1;
   
