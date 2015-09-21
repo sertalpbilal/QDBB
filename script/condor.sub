@@ -1,0 +1,581 @@
+Executable = ../test/portfolio 
+Universe   = vanilla
+getenv     = true
+transfer_executable = false 
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c mf -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0001.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c mf -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0002.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c mf -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0003.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c mf -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0004.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c mf -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0005.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c mf -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0006.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c mf -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0007.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c mf -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0008.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c hc -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0009.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c hc -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0010.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c hc -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0011.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c hc -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0012.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c hc -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0013.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c hc -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0014.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c hc -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0015.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c hc -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0016.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c random -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0017.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c random -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0018.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c random -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0019.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c random -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0020.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c random -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0021.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c random -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0022.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c random -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0023.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c random -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0024.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c mf -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0025.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c mf -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0026.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c mf -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0027.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c mf -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0028.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c mf -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0029.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c mf -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0030.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c mf -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0031.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c mf -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0032.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c hc -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0033.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c hc -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0034.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c hc -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0035.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c hc -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0036.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c hc -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0037.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c hc -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0038.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c hc -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0039.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c hc -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0040.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c random -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0041.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c random -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0042.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c random -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0043.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c random -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0044.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c random -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0045.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c random -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0046.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c random -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0047.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c random -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0048.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c mf -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0049.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c mf -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0050.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c mf -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0051.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c mf -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0052.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c mf -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0053.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c mf -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0054.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c mf -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0055.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c mf -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0056.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c hc -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0057.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c hc -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0058.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c hc -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0059.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c hc -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0060.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c hc -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0061.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c hc -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0062.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c hc -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0063.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c hc -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0064.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c random -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0065.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c random -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0066.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c random -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0067.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c random -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0068.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c random -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0069.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c random -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0070.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c random -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0071.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c random -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.040000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0072.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c mf -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0073.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c mf -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0074.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c mf -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0075.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c mf -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0076.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c mf -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0077.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c mf -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0078.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c mf -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0079.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c mf -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0080.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c hc -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0081.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c hc -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0082.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c hc -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0083.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c hc -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0084.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c hc -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0085.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c hc -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0086.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c hc -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0087.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c hc -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0088.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c random -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0089.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c random -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0090.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c random -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0091.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c random -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0092.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c random -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0093.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c random -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0094.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c random -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0095.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b mf -c random -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0096.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c mf -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0097.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c mf -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0098.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c mf -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0099.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c mf -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0100.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c mf -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0101.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c mf -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0102.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c mf -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0103.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c mf -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0104.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c hc -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0105.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c hc -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0106.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c hc -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0107.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c hc -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0108.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c hc -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0109.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c hc -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0110.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c hc -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0111.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c hc -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0112.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c random -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0113.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c random -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0114.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c random -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0115.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c random -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0116.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c random -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0117.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c random -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0118.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c random -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0119.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b hc -c random -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0120.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c mf -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0121.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c mf -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0122.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c mf -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0123.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c mf -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0124.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c mf -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0125.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c mf -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0126.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c mf -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0127.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c mf -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0128.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c hc -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0129.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c hc -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0130.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c hc -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0131.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c hc -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0132.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c hc -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0133.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c hc -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0134.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c hc -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0135.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c hc -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0136.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c random -s df0 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0137.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c random -s df0 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0138.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c random -s df1 -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0139.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c random -s df1 -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0140.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c random -s breadth -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0141.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c random -s breadth -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0142.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c random -s best -x 0 -l 100 -i 0 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0143.txt
+queue 1
+
+arguments  = -type roundlot -d AA -a 20 -b random -c random -s best -x 0 -l 100 -i 1 -p 1 -C 1000 -r 0.060000 -f 0 -o 2
+output     = ../test/portfolio-output/out.0144.txt
+queue 1
+

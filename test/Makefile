@@ -53,7 +53,6 @@ cardinality: $(SRCCARDINALITY)
 	#                  0-5  0-1      0-1       >0    -1, >0   >0                   0 or 1 or 2        >0
 	# ./cardinal 10    1    0        0         100   2        1    10000 0.06  4   2
 
-
 # argv  #
 # 1	# number of variables (asset)
 # 2	# rule	0: no cut
@@ -80,6 +79,8 @@ cardinality: $(SRCCARDINALITY)
 clean:
 	rm -rf *.o *~ qdbb
 	rm -rf ../test/*.int ../test/*.mps ../test/*.lp 
+	rm -rf result/*
+	rm portfolio
 	#rm -rf $(SRCDIR)/*.o $(SRCDIR)/*~ 
 
 

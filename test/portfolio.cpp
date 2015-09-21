@@ -846,7 +846,7 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
   else if(PROBLEMCODE==2) { // CARDINALITY // TODO each of these functions should go to their own file!
     
     N = numVars_-1; //(N-1)/2; // total number of variables is 2N+1
-    printf("N: %d\n", N);
+    //printf("N: %d\n", N);
 
     // For this cut we need to introduce 
     // 1) a new variable
@@ -881,7 +881,7 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
     long double kd = k + 0.0;
     long double tau = ( sqrt(1-(1/kd))  - 1 ) * 2 * kd;
     //tau = 0;
-    printf("\ntau: %Lf, k: %d\n",tau, k);
+    //printf("\ntau: %Lf, k: %d\n",tau, k);
     
     int* zrowindex = new int[N];
     int* zcolindex = new int[N];
@@ -1082,7 +1082,7 @@ int nextCut(int N, int heuType, double* soln, vector< vector<int> > *usedCuts) {
   double* diff = new double[N];
   int i=0;
 
-  if(heuType==0) {
+  if(heuType==0) { // most fractional
 
     // Step 1: Sort assets based on their distance to half (.5)
     
@@ -1090,10 +1090,15 @@ int nextCut(int N, int heuType, double* soln, vector< vector<int> > *usedCuts) {
       diff[i] = fabs(soln[i]-round(soln[i]));
     }
 
-  } else if(heuType==1) {
+  } else if(heuType==1) { // highest cost
     // Step 1: Sort assets based on their return values
     for(i=0; i<N; ++i) {
       diff[i] = mu[i];
+    }
+  } 
+  else if(heuType==2) { // random
+    for(i=0; i<N; ++i) {
+      diff[i] = rand() % 300;
     }
   }
 

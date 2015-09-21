@@ -6,7 +6,7 @@
 int OUTLEV = 5;
 int FILEOUTPUT = 0;
 
-#define printText(flag, ...) if (flag <= OUTLEV) { printf("%d: ",flag); printf(__VA_ARGS__); printf("\n"); }
+#define printText(flag, ...) if (flag <= OUTLEV) { printf("%d:%*s",flag,2*flag,""); printf(__VA_ARGS__); printf("\n"); }
 
 
 /*static void MSKAPI printstr(void *handle, MSKCONST char str[]) 
@@ -41,6 +41,7 @@ int totalFadingCuts_ = 0;
 int totalNodeFadingCuts_ = 0;
 int bestNodeNumber_ = 0;
 double objectiveTolerance_ = 1e-4;
+double integerTolerance_ = 1e-6;
 int numVars_ = 0;
 int N = 0; /* number of assets, always 1 less than numVars */
 /* TODO Change N to number of variables! */
@@ -57,6 +58,7 @@ int main(int argc, char* argv[]) {
 
   std::cout << "QDBB." << std::endl;
   root = NULL;
+  srand(42); // Magic number
     
   MSKenv_t env = NULL;
   MSKtask_t task = NULL;
@@ -101,6 +103,7 @@ int parseInfo(int argc, char* argv[]) {
     if(strcmp(tmp, "-f")==0)
       FILEOUTPUT = atoi(argv[i+1]);
 
+    branchingRule_ = 0;
     if(strcmp(tmp, "-b")==0) { // Branching rule
       if(strcmp(argv[i+1],"mf")==0) // most fractional
 	branchingRule_ = 0;
@@ -154,7 +157,7 @@ int parseInfo(int argc, char* argv[]) {
 
   }
 
-
+  printText(1,"Input= a: %d, branch: %d, cut: %d, iter: %d, cutper: %d, term: %d", N, branchingRule_, cutPriority_, iterationLimit_, cutPerIteration_, cutRule_);
   
   return 1;
 }
@@ -285,7 +288,7 @@ finaldecision:
         bestNodeNumber_ = activeNode->ID;
         eliminateNodes();
 	if(FILEOUTPUT)
-	  MSK_writedata(activeNode->problem, "result/bestnode.lp");
+	  MSK_writedata(activeNode->problem, "result/bestnode.mps");
       }
     } else if(activeNode->feasible && !activeNode->intfeasible) {
       // branch
@@ -310,9 +313,13 @@ finaldecision:
   
   
   printText(1, "Best objective value: %f", globalUpperBound_);
-  printText(1, "Values: ");
+  printText(2, "Values: ");
   for(int i=0; i<N; i++) {
-    printText(1, "\t%d: %f", (i+1), bestSoln_[i]);
+    if(bestSoln_[i] < integerTolerance_) {
+      printText(3, "  %d: %f", (i+1), bestSoln_[i]);
+    } else {
+      printText(2, "  %d: %f", (i+1), bestSoln_[i]);
+    }
   }
   printText(1, "Number of nodes processed: %d", nodesProcessed_);
   printText(1, "Number of nodes generated: %d", totalNodes_);
@@ -326,6 +333,7 @@ finaldecision:
   printText(1, "Total objective improvement: %e", totalImprovement_);
   printText(1, "Best objective improvement: %e", bestImprovement_);
   printText(1,"Optimal node: %d", bestNodeNumber_);
+  printText(1,"Optimal value: %f", globalUpperBound_);
   printText(1,"Done...");
   return status;
 }
@@ -337,7 +345,7 @@ int branch(Node* activeNode) {
   if(branchingRule_ == 0) { // most fractional branching
     double initval = activeNode->nodeSoln[0];
     double mostfrac = fmin(initval - floor(initval), ceil(initval) - initval);
-    for(int i=1; i<=N; ++i) {
+    for(int i=1; i<N; ++i) {
       double cValue = activeNode->nodeSoln[i];
       double smallest = fmin(cValue - floor(cValue), ceil(cValue) - cValue);
       if(smallest > mostfrac) {
@@ -348,34 +356,40 @@ int branch(Node* activeNode) {
   }
   else if (branchingRule_ == 1) { // highest cost branching
     double *cost = mu;
-    double hc = cost[0];
-    for(int i=1; i<=N; ++i) {
+    asset = -1;
+    double hc = -1000000; //cost[0];
+    for(int i=0; i<N; ++i) {
       MSKvariabletypee vartype;
-      MSK_getvartype(activeNode->problem, i, &vartype);
-      if(vartype == MSK_VAR_TYPE_INT) {
-	if( fabs(activeNode->nodeSoln[i] - round(activeNode->nodeSoln[i])) > 1e-6) {
+      //MSK_getvartype(activeNode->problem, i+1, &vartype);
+      //if(vartype == MSK_VAR_TYPE_INT) {
+      //printf("Variable %d, value: %f, round: %f, diff: %f, hc: %f\n", i, activeNode->nodeSoln[i], round(activeNode->nodeSoln[i]), fabs(activeNode->nodeSoln[i+1] - round(activeNode->nodeSoln[i+1])), hc);
+	if( fabs(activeNode->nodeSoln[i] - round(activeNode->nodeSoln[i])) > integerTolerance_) {
 	  if( cost[i] > hc ) {
 	    asset = i;
 	    hc = cost[i];
 	  }
-	}
-      }
+	  //}
     
+	}
     }
   }
   else if (branchingRule_ == 2) { // random
-    
+    int i=0;
+    while(true) {
+      i = rand() % N;
+      if( fabs(activeNode->nodeSoln[i] - round(activeNode->nodeSoln[i])) > integerTolerance_) {
+	asset = i;
+	break;
+      }
+    }
     
     
   } 
   else if (branchingRule_ == 3) { // bonami 
     
-    
+    // not implemented yet!
     
   }
-
-  // find most fractional
-  
   
   printText(2,"Branching, var(%d)<=%.0f or var(%d)>=%.0f",asset,floor(activeNode->nodeSoln[asset]),asset, ceil(activeNode->nodeSoln[asset]));
   
@@ -384,11 +398,11 @@ int branch(Node* activeNode) {
   // Left - Less than bound
   Node* leftNode =  new Node; // (Node*) malloc(sizeof(Node));
   createNewNode(activeNode /*parent*/, &leftNode, asset /*var id*/,  floor(activeNode->nodeSoln[asset])/* bound */, 0 /* lower */);
-  printText(2,"New node (%d) is child of (%d) with var(%d)<=%.2f",totalNodes_-1, activeNode->ID, asset, floor(activeNode->nodeSoln[asset])); 
+  printText(3,"New node (%d) is child of (%d) with var(%d)<=%.2f",totalNodes_-1, activeNode->ID, asset, floor(activeNode->nodeSoln[asset])); 
   // Right - Greater than bound
   Node* rightNode = new Node; //(Node*) malloc(sizeof(Node));
   createNewNode(activeNode /*parent*/, &rightNode, asset /*var id*/, ceil(activeNode->nodeSoln[asset]) /* bound */, 1 /* lower */);
-  printText(2,"New node (%d) is child of (%d) with var(%d)>=%.2f",totalNodes_-1, activeNode->ID, asset, ceil(activeNode->nodeSoln[asset]));
+  printText(3,"New node (%d) is child of (%d) with var(%d)>=%.2f",totalNodes_-1, activeNode->ID, asset, ceil(activeNode->nodeSoln[asset]));
   
   // Add them to active list
   // Done in create
@@ -429,7 +443,33 @@ int selectNode(Node** activeNode) {
   int status = 0;
   unsigned int selected = 0;
   int max_depth = -1;
-  if(0) { // finiteUpperBound_) { // BEST BOUND
+
+
+  if(searchRule_ == 0) {  // df0 depth-first left
+    *activeNode = nodeList_[0];
+    for(unsigned int i=0; i < nodeList_.size(); i++) {
+      if(nodeList_[i]->depth > max_depth && i>selected) {
+	selected = i;
+	*activeNode = nodeList_[i];
+	max_depth = nodeList_[i]->depth;
+      }
+    }
+  }
+  else if(searchRule_ == 1) { // df1 depth-first right
+    *activeNode = nodeList_[0];
+    for(unsigned int i=0; i < nodeList_.size(); i++) {
+      if(nodeList_[i]->depth >= max_depth && i>selected) {
+	selected = i;
+	*activeNode = nodeList_[i];
+	max_depth = nodeList_[i]->depth;
+      }
+    }
+  }
+  else if(searchRule_ == 2) { // breadth
+    *activeNode = nodeList_[0];
+    selected = 0;
+  }
+  else if(searchRule_ == 3) { // best lower bound
     *activeNode = nodeList_[0];
     double bestbound = nodeList_[0]->lowerBound;
     for(unsigned int i=1; i < nodeList_.size(); i++) {
@@ -437,21 +477,6 @@ int selectNode(Node** activeNode) {
 	selected = i;
 	*activeNode = nodeList_[i];
 	bestbound = nodeList_[i]->lowerBound;
-      }
-    }
-  }
-  else if(0) { // BREADTH FIRST
-    *activeNode = nodeList_[0];
-    selected = 0;
-  } 
-  else   { // DEEP FIRST
-    *activeNode = nodeList_[0];
-  
-    for(unsigned int i=0; i < nodeList_.size(); i++) {
-      if(nodeList_[i]->depth >= max_depth && i>selected) {
-	selected = i;
-	*activeNode = nodeList_[i];
-	max_depth = nodeList_[i]->depth;
       }
     }
   }
@@ -501,7 +526,7 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
     (*newNode)->depth = 0;
     (*newNode) -> nodeSoln = (double*) malloc(N*sizeof(double));
     
-    printText(3, "Root is created");
+    printText(1, "Root is created, Branch and Conic Cut has started.");
 
     printToFile(*newNode);
     
@@ -667,7 +692,7 @@ int isIntFeasible(Node* aNode) {
     
     
     //if( std::modf(aNode->nodeSoln[i], &intpart) >= 1e-5) {
-    if(abs(round(aNode->nodeSoln[i])-aNode->nodeSoln[i]) >= 1e-6) {
+    if(abs(round(aNode->nodeSoln[i])-aNode->nodeSoln[i]) > integerTolerance_) {
       intfeasible = false;
       printText(5,"Integer infeasibility at variable %d, value: %f",i, aNode->nodeSoln[i]);
     }

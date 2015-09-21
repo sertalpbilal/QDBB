@@ -15,6 +15,7 @@ extern double Rt_;
 extern int k_;
 extern int cardinaltype_;
 extern double C_;
+extern string datafolder_;
 
 extern int PROBLEMCODE; // = 1;
 
@@ -28,15 +29,11 @@ int createRoundlot(MSKtask_t* task)
 	// }
 
   // Create variables
-  //int N = atoi(argv[1]);
   int N = N_;
   localN = N;
-  //double R = atof(argv[9]); //0.02;
   double R = Rt_;
   double mu_0 = 0;
-  //double C = atof(argv[8]); //100000;
   double C = C_;
-
   
   double **Q = new double*[N];
   for(int i = 0; i < N; ++i) {
@@ -46,12 +43,25 @@ int createRoundlot(MSKtask_t* task)
   int* M = new int[N];
   double* P = new double[N];
   mu = new double[N];
+
+  // Read data files
+  char qname[80];
+  char pname[80];
+  char muname[80];
+  char mname[80];
+  strcat(strcpy(qname, "../data/Q/"), datafolder_.c_str());
+  strcat(strcpy(pname, "../data/P/"), datafolder_.c_str());
+  strcat(strcpy(muname, "../data/mu/"), datafolder_.c_str());
+  strcat(strcpy(mname, "../data/M/"), datafolder_.c_str());
   
+  //
+  printf("%s\n",qname);
+
   // Read the file
-  readDouble2DArray("../data/Q", N, Q);
-  readDoubleArray("../data/P", N, P);
-  readDoubleArray("../data/mu", N, mu);
-  readIntegerArray("../data/M", N, M);
+  readDouble2DArray(qname, N, Q);
+  readDoubleArray(pname, N, P);
+  readDoubleArray(muname, N, mu);
+  readIntegerArray(mname, N, M);
   
   // Compute parameters
   double* phat = new double[N];
@@ -207,7 +217,7 @@ int createRoundlot(MSKtask_t* task)
   
   MSK_putqconk(*task, 0, (N+1)*N/2, rowindex, colindex, valindex);
   
-  MSK_writedata(*task, "beforeCut.mps");
+  //MSK_writedata(*task, "beforeCut.mps");
   
   string solver("MOSEK");
   

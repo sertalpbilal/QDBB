@@ -1,0 +1,6 @@
+
+# This file gathers the results from test folder and put them into table
+
+ofile = open('../test/portfolio-results/out.20.txt')
+
+print ofile
