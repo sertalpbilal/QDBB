@@ -41,7 +41,7 @@ int createProblem(MSKtask_t* task, int argc, char* argv[]) {
     if(argv[i][0]!='-') {
       continue;
     }
-    if(strcmp(tmp, "-t")==0) { // Problem type
+    if(strcmp(tmp, "-t")==0 || strcmp(tmp, "-type")==0) { // Problem type
       if(strcmp(argv[i+1],"roundlot")==0)
 	PROBLEMCODE = 1;
       else if(strcmp(argv[i+1],"cardinality")==0)
@@ -748,7 +748,7 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
         tvalue = tvalue + 2*pDV[i]*mysolnxx[i];
       }
       //std::cout << "Value is : " << tvalue << ", rho is : " << -newro << std::endl;
-      if(abs(tvalue+newro)<1e-8) {
+      if(abs(tvalue+newro)<1e-6) {
         response = 0;
         free(mysolnxx);
         

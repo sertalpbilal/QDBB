@@ -359,7 +359,7 @@ int branch(Node* activeNode) {
     asset = -1;
     double hc = -1000000; //cost[0];
     for(int i=0; i<N; ++i) {
-      MSKvariabletypee vartype;
+      //MSKvariabletypee vartype;
       //MSK_getvartype(activeNode->problem, i+1, &vartype);
       //if(vartype == MSK_VAR_TYPE_INT) {
       //printf("Variable %d, value: %f, round: %f, diff: %f, hc: %f\n", i, activeNode->nodeSoln[i], round(activeNode->nodeSoln[i]), fabs(activeNode->nodeSoln[i+1] - round(activeNode->nodeSoln[i+1])), hc);
@@ -421,7 +421,7 @@ int cut(Node* activeNode) {
   if(variableForCut >= 0 ) {
 
     double currsoln = activeNode->nodeSoln[variableForCut];
-    if(abs(currsoln-round(currsoln))<1e-2) {
+    if(fabs(currsoln-round(currsoln))<1e-1) {
       printText(3,"Node (%d) variable %d is close to integer %.3f, cut is not generated",activeNode->ID,variableForCut,currsoln);
       return 0;
     } 
@@ -692,7 +692,7 @@ int isIntFeasible(Node* aNode) {
     
     
     //if( std::modf(aNode->nodeSoln[i], &intpart) >= 1e-5) {
-    if(abs(round(aNode->nodeSoln[i])-aNode->nodeSoln[i]) > integerTolerance_) {
+    if(fabs(round(aNode->nodeSoln[i])-aNode->nodeSoln[i]) > integerTolerance_) {
       intfeasible = false;
       printText(5,"Integer infeasibility at variable %d, value: %f",i, aNode->nodeSoln[i]);
     }

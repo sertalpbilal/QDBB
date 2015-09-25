@@ -11,6 +11,7 @@ extern double Rt_;
 extern int k_;
 extern int cardinaltype_;
 extern int PROBLEMCODE;// = 2;
+extern string datafolder_;
 
 /*  @short Creates the cardinality constrained portfolio optimization problem
  *  @param[in] task  Problem instance (MOSEK)
@@ -41,8 +42,13 @@ int createCardinality(MSKtask_t* task)
   mu = new double[N];
   
   // Read the file
-  readDouble2DArray("../data/Q", N, Q);
-  readDoubleArray("../data/mu", N, mu);
+  char qname[80];
+  char muname[80];
+  strcat(strcpy(qname, "../data/Q/"), datafolder_.c_str());
+  strcat(strcpy(muname, "../data/mu/"), datafolder_.c_str());
+ 
+  readDouble2DArray(qname, N, Q);
+  readDoubleArray(muname, N, mu);
   
   MSKrescodee r;
   
@@ -173,7 +179,7 @@ int createCardinality(MSKtask_t* task)
   }
 
   MSK_toconic (*task);
-  MSK_writedata(*task, "result/CardinalityOriginal.mps");
+  //MSK_writedata(*task, "result/CardinalityOriginal.mps");
   //MSK_writedata(*task, "CardinalityOriginal.lp");
   string solver("MOSEK");
   
