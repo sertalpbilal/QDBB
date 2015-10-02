@@ -13,6 +13,8 @@ extern double Rt_;
 extern int k_;
 extern int PROBLEMCODE;// = 3;
 extern string datafolder_;
+extern double integerTolerance_;
+extern int FILEOUTPUT;
 
 /*  @short Creates the single cardinality constrained portfolio optimization problem
  *  @param[in] task  Problem instance (MOSEK)
@@ -21,7 +23,7 @@ extern string datafolder_;
 int createSingleCardinality(MSKtask_t* task)
 {
   PROBLEMCODE = 3; // Yay!
-  printf("Working\n");
+  //printf("Working\n");
   localN = N_; // number of assets, total vars: 2*N+1 [t x1...xn z1...zn]
   int N = N_;
   double Rt = Rt_;
@@ -48,15 +50,15 @@ int createSingleCardinality(MSKtask_t* task)
   r = MSK_appendcons(*task,1+N+1+1+1); 
   // constraints: 0. return, 1-N x^2<=z, N+1 sum to 1, N+2 x'Qx<=t, and N+3 sum(z) <= k
   r = MSK_appendvars(*task,2*N+1);
-
+  // variables: 0. t, 1-N x, N+1 - 2N z
   if(r) {
     r = r;
   }
-  
+  //printf("N: %d\n",N);
   // Give Variable Bounds
-  r = MSK_putvarbound(*task,0,MSK_BK_LO,0,+MSK_INFINITY);
+  r = MSK_putvarbound(*task,0,MSK_BK_FR,-MSK_INFINITY,+MSK_INFINITY);
   for(int j=0; j<N; j++) {
-    r = MSK_putvarbound(*task, j+1 /* Index of variable.*/, MSK_BK_RA, 0, 1);
+    r = MSK_putvarbound(*task, j+1, MSK_BK_RA, 0, 1);
     r = MSK_putvarbound(*task, j+N+1, MSK_BK_RA, 0, 1);
   }
    
@@ -86,18 +88,26 @@ int createSingleCardinality(MSKtask_t* task)
   // RHS
   r = MSK_putconbound(*task, 0, MSK_BK_LO, Rt, MSK_INFINITY); 
   
-  // Row 1 to N: x/z relation
+  // Row 1 to N: x/z relation ---> x_j^2 - z_j <= 0
+  int* temprow = new int[1];
+  int* tempcol = new int[1];
+  double* tempval = new double[1];
   for(int j=0; j<N; j++) {
-    r = MSK_putaij(*task, j+1, j+1, 1);
-    r = MSK_putaij(*task, j+1, N+j+1, -1);
-    r = MSK_putconbound(*task, j+1, MSK_BK_UP, -MSK_INFINITY, 0); 
+    // r = MSK_putaij(*task, j+1, j+1, 1);
+    MSK_putaij(*task, j+1, N+j+1, -1); // z
+    temprow[0] = j+1;
+    tempcol[0] = j+1;
+    tempval[0] = 2;
+    MSK_putqconk(*task, j+1, 1, temprow, tempcol, tempval); // x^2
+    MSK_putconbound(*task, j+1, MSK_BK_UP, -MSK_INFINITY, -1e-6); // <= 0 
+    
   }
   
   // Row N+1: sum to 1
   for(int j=0; j<N; j++) {
     r = MSK_putaij(*task, N+1, j+1, 1);
   }
-  r = MSK_putconbound(*task, N+1, MSK_BK_FX, 1, 1); 
+  r = MSK_putconbound(*task, N+1, MSK_BK_RA, 1, 1); 
   
   // Row N+2: x'Qx <= t
   r = MSK_putaij(*task, N+2, 0, -1); // t
@@ -116,82 +126,42 @@ int createSingleCardinality(MSKtask_t* task)
   MSK_putqconk(*task, N+2, (N+1)*N/2, rowindex, colindex, valindex);
   r = MSK_putconbound(*task, N+2, MSK_BK_UP, -MSK_INFINITY, 0); 
   
-  int* zrowindex = new int[N];
-  int* zcolindex = new int[N];
-  double* zvalindex = new double[N];
-
-
-  if(cardinaltype==1) {  // Quadratic cardinality constraint
-    
-    // Row N+3: z'z <= k
-    
-    int zbusindex = 0;
-    for(int i=1; i<N+1; i++) {
-      zrowindex[zbusindex]=N+i;
-      zcolindex[zbusindex]=N+i;
-      zvalindex[zbusindex]=2;
-      zbusindex++;
-    }
-    MSK_putqconk(*task, N+3, N, zrowindex, zcolindex, zvalindex);
-    r = MSK_putconbound(*task, N+3, MSK_BK_UP, -MSK_INFINITY, k);
-
+  // Linear 
+  // Cardinality sum(z)<=k
+  for(int j=0; j<N; j++) {
+    r = MSK_putaij(*task, N+3, N+j+1, 1);
   }
-  else if(cardinaltype==0) {  // Linear cardinality constraint
-    // Linear 
-    for(int j=0; j<N; j++) {
-      r = MSK_putaij(*task, N+3, N+j+1, 1);
-    }
-    // RHS
-    r = MSK_putconbound(*task, N+3, MSK_BK_UP, -MSK_INFINITY, k); 
-  }
-  else if(cardinaltype==2) { // Conic problem
-
-    MSK_appendvars(*task, 2); // v_1 and v_2
-    MSK_appendcons(*task, 2); // v_1 = (k-1)/2  and  v2 = (k+1)/2
-    
-    MSK_putvarname(*task, 2*N+1, "v1");
-    MSK_putvarname(*task, 2*N+2, "v2");
-
-    MSK_putvarbound(*task, 2*N+1, MSK_BK_LO, 0, MSK_INFINITY);
-    MSK_putvarbound(*task, 2*N+2, MSK_BK_LO, 0, MSK_INFINITY);
-
-    int* csub = new int[N+2];
-    csub[0] = 2*N+2;
-    csub[1] = 2*N+1;
-    for(int i=0; i<N; i++) { csub[i+2] = N+i+1; }
-    MSK_appendcone(*task, MSK_CT_QUAD, 0.0, N+2, csub);
-
-    delete[] csub;
-
-    MSK_putaij(*task, N+4, 2*N+1, 1);
-    MSK_putaij(*task, N+5, 2*N+2, 1);
-    double copyk = k+0;
-    MSK_putconbound(*task, N+4, MSK_BK_RA, (copyk-1)/2, (copyk-1)/2);
-    MSK_putconbound(*task, N+5, MSK_BK_RA, (copyk+1)/2, (copyk+1)/2);
-    
-
-  }
-
-  MSK_toconic (*task);
-  //MSK_writedata(*task, "result/CardinalityOriginal.mps");
-  //MSK_writedata(*task, "CardinalityOriginal.lp");
+  // RHS
+  r = MSK_putconbound(*task, N+3, MSK_BK_UP, -MSK_INFINITY, k); 
+  
+  //MSK_toconic (*task);
   string solver("MOSEK");
   
   delete[] rowindex;
   delete[] colindex;
   delete[] valindex;
-  delete[] zrowindex;
-  delete[] zcolindex;
-  delete[] zvalindex;
+  delete[] temprow;
+  delete[] tempcol;
+  delete[] tempval;
   for(int i=0; i<N; i++) {
     delete[] Q[i];
   }
   delete[] Q;
   
+  if(FILEOUTPUT) {
+    MSK_writedata(*task, "result/singleOriginal.mps");
+  }
+  
+  MSK_toconic(*task);
+
+  if(FILEOUTPUT) {
+    MSK_writedata(*task, "result/singleOriginal2.mps");
+  }
+  
   return 1;
 }
 
-int deleteCardinality() {
+int deleteSingleCardinality() {
   
   delete[] mu;
   

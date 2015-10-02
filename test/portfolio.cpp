@@ -46,6 +46,8 @@ int createProblem(MSKtask_t* task, int argc, char* argv[]) {
 	PROBLEMCODE = 1;
       else if(strcmp(argv[i+1],"cardinality")==0)
 	PROBLEMCODE = 2;
+      else if(strcmp(argv[i+1],"single")==0)
+	PROBLEMCODE = 3;
       else { printf("Unknown Problem Type\n"); exit(0); }
     }
 
@@ -85,7 +87,7 @@ int createProblem(MSKtask_t* task, int argc, char* argv[]) {
     createCardinality(task);
   }
   else if(PROBLEMCODE==3) {
-    // createSingle(task);
+    createSingleCardinality(task);
   }
 
   return 1;
@@ -98,6 +100,9 @@ int deleteProblem() {
   }
   else if(PROBLEMCODE==2) {
     deleteCardinality();
+  }
+  else if(PROBLEMCODE==3) {
+    deleteSingleCardinality();
   }
 
   return 1;
@@ -616,7 +621,9 @@ void MOSEK_addDCyC(MSKtask_t env, MSKrescodee & problem, int asset, double value
 
 
 int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* pBar,  double** DhalfVT,  double** VDhalfinv) {
-
+  
+  //printf("Add new cut PROBLEMCODE: %d\n",PROBLEMCODE);
+  
   int response = 1;
   
   char tbuffer[80];
@@ -632,7 +639,6 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
   MSK_getnumvar(env,&N);
   
   if(PROBLEMCODE==1) { // ROUND LOT
-    
     
     N = N-1;
     
@@ -748,7 +754,7 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
         tvalue = tvalue + 2*pDV[i]*mysolnxx[i];
       }
       //std::cout << "Value is : " << tvalue << ", rho is : " << -newro << std::endl;
-      if(abs(tvalue+newro)<1e-6) {
+      if(tvalue+newro<1e-3) {
         response = 0;
         free(mysolnxx);
         
@@ -768,6 +774,9 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
         delete[] pDV;
         
         return 0;
+      }
+      else {
+	//printText(7,"Cut is deep: %f\n", tvalue+newro);
       }
       
       free(mysolnxx);
@@ -941,33 +950,49 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
     return 1;
     
     
-  }  
-  // cout << "CP4" << endl;  
-  
-  //MSK_writedata(env, "afterCut.lp");
-  //MSK_writedata(env, "afterCut.mps");
-  
-  // CPLEX STUFF
-  /* IloExpr quadCut(env);
-    for (i = 1; i < N+1; ++i) { // Quadratic Part - Only z variables
-      for (j = 1; j < N+1; ++j) {
-        quadCut += VDPDV[i][j]*(*var_z)[i-1]*(*var_z)[j-1];
-      }
-      quadCut += 2*pDV[i]*(*var_z)[i-1];
-    }
+  }
+  else if(PROBLEMCODE == 3) { // SINGLE CARDINAL
+    N = numVars_-1;
+    //printf("N: %d\n",N);
+    int* zrowindex = new int[2];
+    int* zcolindex = new int[2];
+    double*  zvalindex = new double[2];
+    zrowindex[0] = asset;
+    zrowindex[1] = N+asset;
+    zcolindex[0] = asset;
+    zcolindex[1] = N+asset;
+    zvalindex[0] = 2;
+    zvalindex[1] = -2;
+    
+    //printf("Working?\n");
+    int cutidx;
+    MSK_getnumcon(env,&cutidx);
+    MSK_appendcons(env,1);
+    MSK_putqconk(env, cutidx, 2, zrowindex, zcolindex, zvalindex);
+    MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, 0); 
+    
 
-    for (j= 1; j<N+1; ++j) { // Quadratic Part - t z
-      quadCut += VDPDV[0][j]*(*var_t)*(*var_z)[j-1];
-      quadCut += VDPDV[j][0]*(*var_t)*(*var_z)[j-1];
-    }
+    MSKrescodee r;
+    r = MSK_toconic(env);
+    r = r;
+    //printf("r: %d\n",r);
 
-    // Quadratic part - t t
-    quadCut += VDPDV[0][0]*(*var_t)*(*var_t);
-
-    quadCut += 2*pDV[0]*(*var_t);
-
-    quadCut += 1*newro; */
-  
+    char txbuffer[80];
+    
+    if(FILEOUTPUT)
+      sprintf(txbuffer, "result/afterCut%d.mps", asset);
+    
+    
+    if(FILEOUTPUT)
+      MSK_writedata(env, txbuffer);
+    
+    delete[] zrowindex;
+    delete[] zcolindex;
+    delete[] zvalindex;
+    
+    return 1;
+    
+  }
   
   
   

@@ -26,7 +26,8 @@ SRCROUNDLOT=$(SRCDIR)/qdbb.cpp \
 SRCPORT = $(SRCDIR)/qdbb.cpp \
 	$(TESTDIR)/portfolio.cpp \
 	$(TESTDIR)/roundlot.cpp \
-	$(TESTDIR)/cardinality.cpp
+	$(TESTDIR)/cardinality.cpp \
+	$(TESTDIR)/single.cpp
 #test_main.cpp
 #$(SRCDIR)/portfolio.cpp
 

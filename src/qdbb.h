@@ -35,6 +35,7 @@ struct Node {
     double      nodeObj;
     double      lowerBound;
     double*     nodeSoln;
+    double*     mosekSoln;
     bool        feasible;
     bool        intfeasible;
     bool        eliminated;

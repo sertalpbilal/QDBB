@@ -28,8 +28,9 @@ int searchRule_ = 0; // 0: default, depth first, left, 1: depth first right, 2: 
 double deepCutThreshold_ = 1e-1; // deep-cut threshold value
 double bestImprovement_ = 0;
 double totalImprovement_ = 0;
+int controlValve = 50;
 int cutSelection_ = 1;
-int cutLimit_ = 1; // max number of cuts to add, default is 1
+int cutLimit_ = 100; // max number of cuts to add, default is 1
 int cutPerIteration_ = 3; // number of cuts to be added at each relaxation
 int iterationLimit_ = 1;
 int nodesProcessed_ = 0;
@@ -40,12 +41,13 @@ int totalSocoSolved_ = 0;
 int totalFadingCuts_ = 0;
 int totalNodeFadingCuts_ = 0;
 int bestNodeNumber_ = 0;
-double objectiveTolerance_ = 1e-4;
+double objectiveTolerance_ = 1e-3;
 double integerTolerance_ = 1e-6;
 int numVars_ = 0;
 int N = 0; /* number of assets, always 1 less than numVars */
 /* TODO Change N to number of variables! */
 Node* root;
+Node* bestNode;
 std::vector< Node* > nodeList_;
 std::vector< Node* > allNodeList_; // Keeps pointer of all nodes for destructor
 
@@ -103,7 +105,6 @@ int parseInfo(int argc, char* argv[]) {
     if(strcmp(tmp, "-f")==0)
       FILEOUTPUT = atoi(argv[i+1]);
 
-    branchingRule_ = 0;
     if(strcmp(tmp, "-b")==0) { // Branching rule
       if(strcmp(argv[i+1],"mf")==0) // most fractional
 	branchingRule_ = 0;
@@ -193,11 +194,11 @@ int startBB(int argc, char* argv[]) {
       if(activeNode->intfeasible) {
         goto finaldecision;
       }
-      if(activeNode->nodeObj > globalUpperBound_) {
+      if(activeNode->nodeObj > globalUpperBound_ + 1e-6) {
         printText(3, "Node (%d) has a higher objective than upper bound, pruning...", activeNode->ID);
         goto finaldecision;
       }
-      if(cutRule_>0) { // B&C
+      if(cutRule_>0 && activeNode->totalCuts < cutLimit_) { // B&C
         int totalCut = 0;
         int iterN = 0;
         //double prevObjective = activeNode->nodeObj;
@@ -218,12 +219,13 @@ int startBB(int argc, char* argv[]) {
             totalSocoSolved_++;
             iterN++;
           }
-        } 
-        else if(cutRule_ == 2) {
+        }
+        else if(cutRule_ == 2) { // Fading Cuts, -x 1
           double prevObjective = activeNode->nodeObj + 2*objectiveTolerance_;
           double newObjective = activeNode->nodeObj;
           totalNodeFadingCuts_++;
-          while(newObjective <= prevObjective - objectiveTolerance_) {
+	  int fadingIter = 0;
+          while(newObjective <= prevObjective - objectiveTolerance_ && fadingIter < controlValve ) {
             if(activeNode->totalCuts < cutLimit_) {
               int isNewCut = cut(activeNode);
               totalFadingCuts_ += isNewCut;
@@ -231,6 +233,7 @@ int startBB(int argc, char* argv[]) {
               totalCutsGenerated_ ++;
               totalCutsApplied_ += isNewCut;
             } else {
+	      printf("Tots: %d, cut lim: %d\n",activeNode->totalCuts,cutLimit_);
               printText(6, "Cut limit reached for node %d",activeNode->ID);
               break;
             }
@@ -239,9 +242,10 @@ int startBB(int argc, char* argv[]) {
             if(!activeNode->feasible) { break; }
             prevObjective = newObjective;
             newObjective = activeNode -> nodeObj;
+	    fadingIter++;
           }
         } 
-        else if(cutRule_ == 5) { // all cuts at root node!
+        else if(cutRule_ == 5) { // all cuts at root node!   -x 2
           
           if(activeNode->ID==0) { // If it is root node
           
@@ -256,8 +260,13 @@ int startBB(int argc, char* argv[]) {
             
           }
           
+	  // no cut for other nodes
           
-        }else {
+        }
+	else if(cutRule_ == 6) { // Order cuts on violation choose fixed num
+	  // TODO
+	}
+	else {
           printText(3, "Undefined cutting rule. Please check readme.");
         }
         double objImprovement = activeNode->nodeObj -  firstObjective;
@@ -284,7 +293,10 @@ finaldecision:
         globalUpperBound_ = activeNode->nodeObj;
 	finiteUpperBound_ = 1;
         bestSoln_ = activeNode->nodeSoln;
-        printText(1, "New upper bound obtained, best objective: %f, node (%d)", globalUpperBound_,activeNode->ID);
+	bestNode = activeNode;
+	//double currgap = 0;
+	
+        printText(1, "Best solution update, node (%4d) objective: %.3f, gap: %.4f", activeNode->ID, globalUpperBound_, 0.0);
         bestNodeNumber_ = activeNode->ID;
         eliminateNodes();
 	if(FILEOUTPUT)
@@ -316,10 +328,13 @@ finaldecision:
   printText(2, "Values: ");
   for(int i=0; i<N; i++) {
     if(bestSoln_[i] < integerTolerance_) {
-      printText(3, "  %d: %f", (i+1), bestSoln_[i]);
+      printText(3, "  %2d: %.8f\t%.8f", (i+1), bestSoln_[i], bestNode->mosekSoln[i+1]);
     } else {
-      printText(2, "  %d: %f", (i+1), bestSoln_[i]);
+      printText(2, "  %2d: %.8f\t%.8f", (i+1), bestSoln_[i], bestNode->mosekSoln[i+1]);
     }
+  }
+  for(int i=0; i<2*N+1; i++) {
+    //printf("Var[%d]:\t%.6f\n", i, bestNode->mosekSoln[i+1]);
   }
   printText(1, "Number of nodes processed: %d", nodesProcessed_);
   printText(1, "Number of nodes generated: %d", totalNodes_);
@@ -391,7 +406,7 @@ int branch(Node* activeNode) {
     
   }
   
-  printText(2,"Branching, var(%d)<=%.0f or var(%d)>=%.0f",asset,floor(activeNode->nodeSoln[asset]),asset, ceil(activeNode->nodeSoln[asset]));
+  printText(2,"Branching, var(%2d)<=%.0f  or  var(%2d)>=%.0f, \t [Node %d]: [%d] and [%d]",asset,floor(activeNode->nodeSoln[asset]), asset, ceil(activeNode->nodeSoln[asset]), activeNode->ID,totalNodes_, totalNodes_+1);
   
   // Call newNode twice
 
@@ -447,8 +462,9 @@ int selectNode(Node** activeNode) {
 
   if(searchRule_ == 0) {  // df0 depth-first left
     *activeNode = nodeList_[0];
+    max_depth = nodeList_[0]->depth;
     for(unsigned int i=0; i < nodeList_.size(); i++) {
-      if(nodeList_[i]->depth > max_depth && i>selected) {
+      if(nodeList_[i]->depth > max_depth) {
 	selected = i;
 	*activeNode = nodeList_[i];
 	max_depth = nodeList_[i]->depth;
@@ -457,8 +473,9 @@ int selectNode(Node** activeNode) {
   }
   else if(searchRule_ == 1) { // df1 depth-first right
     *activeNode = nodeList_[0];
+    max_depth = nodeList_[0]->depth;
     for(unsigned int i=0; i < nodeList_.size(); i++) {
-      if(nodeList_[i]->depth >= max_depth && i>selected) {
+      if(nodeList_[i]->depth >= max_depth) {
 	selected = i;
 	*activeNode = nodeList_[i];
 	max_depth = nodeList_[i]->depth;
@@ -504,6 +521,7 @@ int eliminateNodes() {
 int createNewNode(Node* parent, Node** newNode, int varID, double bound, int lower) {
   int status = 0;
   
+  // No parent
   if(!parent) {
     
     
@@ -522,9 +540,11 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
     (*newNode)->eliminated = false;
     (*newNode)->problem = oProblem;
     (*newNode)->parent = 0;
+    (*newNode)->totalCuts = 0;
     //(*newNode)->usedCuts;
     (*newNode)->depth = 0;
     (*newNode) -> nodeSoln = (double*) malloc(N*sizeof(double));
+    (*newNode) -> mosekSoln = (double*) malloc((2*N+1)*sizeof(double));
     
     printText(1, "Root is created, Branch and Conic Cut has started.");
 
@@ -545,8 +565,15 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
     int corrector = 0;
     if(PROBLEMCODE==2) {
       corrector = N;
+      bound = bound + (1-2*lower)*(1e-6);
+    }
+    if(PROBLEMCODE==3) {
+      corrector = N;
+      bound = bound + (1-2*lower)*(1e-6);
     }
     
+    //bound = bound; // + 1e-8
+    // printf("Bound: %.8f\n",bound);
     if(varID!=-1) {
       MSK_chgbound ( 
       newProblem,         //MSKtask_t    task, 
@@ -578,6 +605,7 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
     (*newNode)->depth = parent->depth+1;
     (*newNode)->totalCuts = parent->totalCuts;
     (*newNode) -> nodeSoln = (double*) malloc(N*sizeof(double));
+    (*newNode) -> mosekSoln = (double*) malloc((2*N+1)*sizeof(double));
     
   }
   
@@ -603,6 +631,10 @@ int solveLP(Node* aNode) {
   MSK_putintparam(mtask, MSK_IPAR_MIO_MODE, MSK_MIO_MODE_IGNORED); // make it LP
   MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_LINDEP_USE, MSK_OFF);
   MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_USE, MSK_PRESOLVE_MODE_OFF);
+  // MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_INFEAS, 1e-16);
+  //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_PFEAS, 1e-16);
+  //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_DFEAS, 1e-16);
+  //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_REL_GAP, 1e-16);
   //MSK_putintparam(mtask, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_CONIC);
   MSK_putintparam(mtask, MSK_IPAR_INTPNT_MAX_ITERATIONS, 20000);
   MSK_putintparam(mtask, MSK_IPAR_BI_IGNORE_MAX_ITER, MSK_ON);
@@ -622,10 +654,10 @@ int solveLP(Node* aNode) {
   MSKrealt primalobj;
 
   //printf("TRMCODE: %d\n", trmcode);
+  //printf("SOLSTA: %d\n", solsta);
   if(trmcode==10006) {
     solsta = MSK_SOL_STA_OPTIMAL;
     //printf("Stall!\n");
-
   }
   
   switch( solsta ) 
@@ -646,7 +678,10 @@ int solveLP(Node* aNode) {
         MSK_getsolutionslice(mtask, MSK_SOL_ITR, MSK_SOL_ITEM_XX, 1, N+1, aNode->nodeSoln);
       } else if(PROBLEMCODE==2) {
         MSK_getsolutionslice(mtask, MSK_SOL_ITR, MSK_SOL_ITEM_XX, N+1, 2*N+1, aNode->nodeSoln);
+      } else if(PROBLEMCODE==3) {
+	MSK_getsolutionslice(mtask, MSK_SOL_ITR, MSK_SOL_ITEM_XX, N+1, 2*N+1, aNode->nodeSoln);
       }
+      MSK_getsolutionslice(mtask, MSK_SOL_ITR, MSK_SOL_ITEM_XX, 0, 2*N+1, aNode->mosekSoln);
       
       // std::cout << primalobj << std::endl;
       printText(3, "Node (%d) Optimal Objective: %f", aNode->ID, aNode->nodeObj);
@@ -696,6 +731,7 @@ int isIntFeasible(Node* aNode) {
       intfeasible = false;
       printText(5,"Integer infeasibility at variable %d, value: %f",i, aNode->nodeSoln[i]);
     }
+    printText(6,"Proximity to integer (%d): %.6f, value: %.6f",i+1,fabs(round(aNode->nodeSoln[i])-aNode->nodeSoln[i]), aNode->nodeSoln[i]);
   }
   
   aNode->intfeasible = intfeasible;
@@ -739,7 +775,7 @@ int finishBB() {
 int deleteNode(Node* aNode) {
   
   free(aNode -> nodeSoln);
-  
+  free(aNode -> mosekSoln);
   MSK_deletetask(&(aNode->problem)); 
   
   delete aNode;
@@ -757,6 +793,7 @@ int printToFile(Node* aNode) {
   int fno = aNode->ID;
   char fname[80];
   sprintf(fname, "../test/result/node%d.mps", fno);
+  //MSK_toconic(aNode->problem);
 
   if(FILEOUTPUT)  
     MSK_writedata(aNode->problem, fname);

@@ -32,7 +32,7 @@ int createRoundlot(MSKtask_t* task)
   int N = N_;
   localN = N;
   double R = Rt_;
-  double mu_0 = 0;
+  double mu_0 = 0.001;
   double C = C_;
   
   double **Q = new double*[N];
