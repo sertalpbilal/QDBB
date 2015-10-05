@@ -2,6 +2,7 @@
 #include "portfolio.h"
 
 extern double* mu;
+extern double** Q;
 
 extern int localN;
 extern int k;
@@ -12,6 +13,7 @@ extern int k_;
 extern int cardinaltype_;
 extern int PROBLEMCODE;// = 2;
 extern string datafolder_;
+extern int FILEOUTPUT;
 
 /*  @short Creates the cardinality constrained portfolio optimization problem
  *  @param[in] task  Problem instance (MOSEK)
@@ -32,14 +34,6 @@ int createCardinality(MSKtask_t* task)
   k = k_;
   //int cardinaltype = atoi(argv[11]);
   int cardinaltype = cardinaltype_;
-
-
-  double **Q = new double*[N];
-  for(int i = 0; i < N; ++i) {
-    Q[i] = new double[N];
-  }
-  
-  mu = new double[N];
   
   // Read the file
   char qname[80];
@@ -178,9 +172,16 @@ int createCardinality(MSKtask_t* task)
 
   }
 
-  MSK_toconic (*task);
-  //MSK_writedata(*task, "result/CardinalityOriginal.mps");
+  if(FILEOUTPUT)
+    MSK_writedata(*task, "result/CardinalityOriginal.mps");
   //MSK_writedata(*task, "CardinalityOriginal.lp");
+  
+  MSK_toconic (*task);
+  
+  if(FILEOUTPUT)
+    MSK_writedata(*task, "result/CardinalityOriginal2.mps");
+  
+
   string solver("MOSEK");
   
   delete[] rowindex;
@@ -189,17 +190,12 @@ int createCardinality(MSKtask_t* task)
   delete[] zrowindex;
   delete[] zcolindex;
   delete[] zvalindex;
-  for(int i=0; i<N; i++) {
-    delete[] Q[i];
-  }
-  delete[] Q;
   
   return 1;
 }
 
 int deleteCardinality() {
   
-  delete[] mu;
   
   return 1;
 }

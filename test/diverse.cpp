@@ -1,5 +1,5 @@
-// Single.cpp is a part of QDBB Portfolio test problems
-// It have the DCC for single cardinality constraint, i.e. x_i^2 <= z_i
+// Diverse.cpp is a part of QDBB Portfolio test problems
+// It have the DCC for diversification constraint, i.e. x_{i1}^2 + x_{i2}^2 + x_{i3}^2 <= 1
 
 #include "portfolio.h"
 
@@ -12,18 +12,18 @@ extern int k;
 extern int N_;
 extern double Rt_;
 extern int k_;
-extern int PROBLEMCODE;// = 3;
+extern int PROBLEMCODE;
 extern string datafolder_;
 extern double integerTolerance_;
 extern int FILEOUTPUT;
 
-/*  @short Creates the single cardinality constrained portfolio optimization problem
+/*  @short Creates the diversification constrained portfolio optimization problem
  *  @param[in] task  Problem instance (MOSEK)
  *  @param[in] argv  User input at runtime
  */
-int createSingleCardinality(MSKtask_t* task)
+int createDiverse(MSKtask_t* task)
 {
-  PROBLEMCODE = 3; // Yay!
+  PROBLEMCODE = 4; // Yay!
   //printf("Working\n");
   localN = N_; // number of assets, total vars: 2*N+1 [t x1...xn z1...zn]
   int N = N_;
@@ -41,8 +41,8 @@ int createSingleCardinality(MSKtask_t* task)
   
   MSKrescodee r;
   
-  r = MSK_appendcons(*task,1+N+1+1+1); 
-  // constraints: 0. return, 1-N x^2<=z, N+1 sum to 1, N+2 x'Qx<=t, and N+3 sum(z) <= k
+  r = MSK_appendcons(*task,N+11); 
+  // constraints: 0. return, 1-N x<=z, N+1 sum to 1, N+2 x'Qx<=t, and N+3 sum(z) <= k, N+4 to N+10 diversif.
   r = MSK_appendvars(*task,2*N+1);
   // variables: 0. t, 1-N x, N+1 - 2N z
   if(r) {
@@ -82,7 +82,15 @@ int createSingleCardinality(MSKtask_t* task)
   // RHS
   r = MSK_putconbound(*task, 0, MSK_BK_LO, Rt, MSK_INFINITY); 
   
-  // Row 1 to N: x/z relation ---> x_j^2 - z_j <= 0
+  // Row 1 to N: x_j <= z_j
+  for(int j=0; j<N; j++) {
+    MSK_putaij(*task, j+1, j+1, 1);
+    MSK_putaij(*task, j+1, N+j+1, -1);
+    MSK_putconbound(*task, j+1, MSK_BK_UP, -MSK_INFINITY, 0);
+  }
+
+
+  /* // Row 1 to N: x/z relation ---> x_j^2 - z_j <= 0
   int* temprow = new int[1];
   int* tempcol = new int[1];
   double* tempval = new double[1];
@@ -96,6 +104,7 @@ int createSingleCardinality(MSKtask_t* task)
     MSK_putconbound(*task, j+1, MSK_BK_UP, -MSK_INFINITY, 0); // <= 0 
     
   }
+  */
   
   // Row N+1: sum to 1
   for(int j=0; j<N; j++) {
@@ -127,6 +136,27 @@ int createSingleCardinality(MSKtask_t* task)
   }
   // RHS
   r = MSK_putconbound(*task, N+3, MSK_BK_UP, -MSK_INFINITY, k); 
+
+  // Row N+4 to N+10, diverse -- AA database specific!
+  int* temprow = new int[3];
+  int* tempcol = new int[3];
+  double* tempval = new double[3];
+  int k = 1;
+  for(int i=0; i<7; i++) {
+    int nomAsset = 3;
+    if(i==4) { // United States
+      nomAsset = 2;
+    }
+    for(int j=0; j<nomAsset; j++) {
+      temprow[j] = k;
+      tempcol[j] = k;
+      tempval[j] = 2;
+      k++;
+    }
+    MSK_putqconk(*task, N+i+4, nomAsset, temprow, tempcol, tempval);
+    MSK_putconbound(*task, N+i+4, MSK_BK_UP, -MSK_INFINITY, 1);
+  }
+  
   
   //MSK_toconic (*task);
   string solver("MOSEK");
@@ -151,7 +181,7 @@ int createSingleCardinality(MSKtask_t* task)
   return 1;
 }
 
-int deleteSingleCardinality() {
+int deleteDiverse() {
   return 1;
 }
 

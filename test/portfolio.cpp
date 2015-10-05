@@ -4,7 +4,10 @@
 double* pBar;
 double** DhalfVT; 
 double** VDhalfinv;
+
 double* mu;
+double** Q;
+
 double Rt = 0; // Return rate
 int k;
 int localN;
@@ -17,10 +20,13 @@ double Rt_;
 double C_;
 int k_;
 int cardinaltype_;
+extern double integerTolerance_;
 
 // This value is overwritten inside createProblem
 int PROBLEMCODE = 1; // 1 for roundlot
                      // 2 for cardinality
+                     // 3 for single
+                     // 4 for diversification
 
 extern int FILEOUTPUT;
 
@@ -48,6 +54,8 @@ int createProblem(MSKtask_t* task, int argc, char* argv[]) {
 	PROBLEMCODE = 2;
       else if(strcmp(argv[i+1],"single")==0)
 	PROBLEMCODE = 3;
+      else if(strcmp(argv[i+1],"diverse")==0)
+	PROBLEMCODE = 4;
       else { printf("Unknown Problem Type\n"); exit(0); }
     }
 
@@ -79,6 +87,14 @@ int createProblem(MSKtask_t* task, int argc, char* argv[]) {
 
   }
 
+  // create mu and Q here
+  Q = new double*[N_];
+  for(int i = 0; i < N_; ++i) {
+    Q[i] = new double[N_];
+  }
+  mu = new double[N_];
+
+
   //printf("PROBLEMCODE: %d\n", PROBLEMCODE);
   if(PROBLEMCODE==1) {
     createRoundlot(task);
@@ -89,7 +105,9 @@ int createProblem(MSKtask_t* task, int argc, char* argv[]) {
   else if(PROBLEMCODE==3) {
     createSingleCardinality(task);
   }
-
+  else if(PROBLEMCODE==4) {
+    createDiverse(task);
+  }
   return 1;
   
 }
@@ -104,150 +122,19 @@ int deleteProblem() {
   else if(PROBLEMCODE==3) {
     deleteSingleCardinality();
   }
+  else if(PROBLEMCODE==4) {
+    deleteDiverse();
+  }
 
+  for(int i=0; i<N_; i++) {
+    delete[] Q[i];
+  }
+  delete[] Q;
+  delete[] mu;
+  
   return 1;
 
 }
-
-
-
-
-/* Note: This function is declared using MSKAPI,
-        so the correct calling convention is
-        employed. */
-static int MSKAPI usercallback(MSKtask_t            task,
-MSKuserhandle_t      handle,
-MSKcallbackcodee     caller,
-MSKCONST MSKrealt  * douinf,
-MSKCONST MSKint32t * intinf,
-MSKCONST MSKint64t * lintinf)
-{
-  
-  MSKtask_t *originaltask=(MSKtask_t *) handle;
-  
-  switch ( caller )
-  {
-    //case MSK_CALLBACK_BEGIN_INTPNT:
-    //  printf("Starting interior-point optimizer\n");
-    //  break;
-  case MSK_CALLBACK_END_INTPNT:
-    printf("Interior-point optimizer finished.\n");
-    MSKrescodee r;
-    r = MSK_putvarbound(*originaltask,
-    3,           /* Index of variable.*/
-    MSK_BK_RA,      /* Bound key.*/
-    1,      /* Numerical value of lower bound.*/
-    2); 
-    r = r;
-    
-    break;
-  default:
-    break;
-  }
-
-  
-  return ( 0 );
-} /* usercallback */
-
-// create problem is moved to roundlot and cardinality
-
-
-int restofoldmain() {
-  
-  
-  // /** Cut Management starts here **/
-  // double* contsol = new double[N+1];
-  // double* contsol2 = new double[N+1];
-  
-  // double* intsol = new double[N+1];
-  // double* intsol2 = new double[N+1];
-  
-  
-  // //Turn -off printing					  
-  // MSK_putintparam(task,  MSK_IPAR_LOG,  0);
-  
-  // solve(task,r,1,intsol, solver); // Integer version
-  
-  
-  // solve(task,r,0,contsol,solver); // Cont. relaxation
-  
-  
-  // int asset = nextCut(N, contsol, &usedCuts);
-  
-  // addDCyC(task, r, asset+1, contsol[asset+1], solver, npBar, DhalfVT, VDhalfinv);
-  
-  // // cout << "CP8" << endl; 
-  
-  // solve(task,r,0,contsol2,solver); // Cont. relaxation
-  
-  // // cout << "CP9" << endl; 
-  
-  // solve(task,r,1,intsol2, solver); // Integer version
-  
-  // cout << "\tMIS\t\tCont\t\tContCut\t\tMISCut" << endl;
-  // for(int i=0; i<N+1; i++) {
-  // cout << i << "\t" << intsol[i] << "\t\t" << contsol[i] << "\t\t" << contsol2[i] << "\t" << intsol2[i] << endl;
-  // }
-  
-  // return 1;
-  
-  
-  // // Solve the Problem
-  // MSKrescodee trmcode;
-  
-  // MSK_writedata(task, "mymodel.lp");
-  
-  // /* Run optimizer */
-  // r = MSK_optimizetrm(task,&trmcode);
-
-  // /* Print a summary containing information
-  // about the solution for debugging purposes*/
-  // //MSK_solutionsummary (task,MSK_STREAM_MSG);
-  
-  // /* Print solutions */
-  // MSKsolstae solsta;
-  // MSK_getsolsta (task,MSK_SOL_ITR,&solsta); 
-
-  // double* xx = new double[N+1];
-  // MSK_getxx(task, MSK_SOL_ITG, xx); 
-  // printf("Optimal primal solution\n"); 
-  // for(int j=0; j<N+1; ++j) 
-  // printf("x[%d]: %e\n",j,xx[j]); 
-  
-  
-  
-  
-  // MSK_deletetask(&task);
-  // MSK_deleteenv(&env);
-  
-  
-  // return (r);
-  
-  return 1;
-} /* main */
-
-
-
-template<class ENV, class PROB>
-int solve(ENV env, PROB & prob, int type, double* solution, string &solver)
-{
-  if(solver.compare("MOSEK")==0) {
-    solveWithMOSEK((MSKtask_t*) env, prob, solution, type);
-  }
-  return 1;
-}
-
-
-template<class ENV, class PROB>
-int addDCyC(ENV env, PROB & prob, int asset, double value, string &solver, double* pBar, double** DhalfVT, double** VDhalfinv)
-{
-  if(solver.compare("MOSEK")==0) {
-    MOSEK_addDCyC((MSKtask_t*) env, prob, asset, value, pBar, DhalfVT, VDhalfinv);
-  }
-  return 1;
-}
-
-
 
 void getEigenvalue(double** matrix, double* eig, double** eigenvectors, int size) {
   char jobz = 'V';
@@ -291,17 +178,9 @@ void getEigenvalue(double** matrix, double* eig, double** eigenvectors, int size
 
 }
 
-
-
-
-
 void initEigTransform(int N, double** Q_hat, double* pBar, double** DhalfVT, double** VDhalfinv) {
 
   int i=0; int j=0;
-
-  
-
-
 
   /** Eigenvalue decomposition **/
 
@@ -417,208 +296,6 @@ void initEigTransform(int N, double** Q_hat, double* pBar, double** DhalfVT, dou
   delete[] eig;
 
 }
-
-
-
-
-
-void MOSEK_addDCyC(MSKtask_t env, MSKrescodee & problem, int asset, double value, double* pBar,  double** DhalfVT,  double** VDhalfinv) {
-
-  
-
-  
-  //MSK_writedata(env, "beforeCut.lp");
-  //MSK_writedata(env, "beforeCut.mps");
-  
-  int N = 0;
-  MSK_getnumvar(env,&N);
-  
-  N = N-1;
-  
-  /*cout << "pbarinfo" << endl;
-  for(int i=0; i<N+1; i++) {
-    cout << "pbar[" << i << "]: " << pBar[i] << endl;
-  }*/
-  
-  int i=0; int j=0;
-
-  double alpha0 = floor(value);
-  double beta0 = ceil(value);
-  
-  double* matC = new double[N+1];
-  
-  for(j=0; j<N+1; ++j) {
-    //cout << "cut info" << endl;
-    //cout << asset << endl;
-    //cout << N << endl;
-    matC[j] = VDhalfinv[asset][j];
-  }
-
-
-  double normC = 0;
-  for(i=0; i<N+1; ++i) {
-    normC = normC + matC[i]*matC[i];
-  }
-  normC = sqrt(normC);
-
-  double alpha = alpha0/normC;
-  double beta = beta0/normC;
-  
-
-  double tau = -1;
-  
-  
-  double** newP = new double*[N+1];
-  for(i = 0; i < N+1; ++i){
-    newP[i] = new double[N+1];
-    for(j = 0; j < N+1; ++j) {
-      newP[i][j] = tau * (matC[i]/normC) * (matC[j]/normC);
-      if (i==j && i!=0) {
-        newP[i][j] = newP[i][j] + 1; // Add matrix J effect
-      }
-      //cout << "P(" << i << "," << j << "): " << newP[i][j] << endl;
-    }
-  }
-  
-  //cout << "newp" << endl;
-  double* newp = new double[N+1];
-  for(i = 0; i < N+1; ++i){
-    //cout << "pbar(" << i << "): " << pBar[i] << endl;
-    newp[i] = pBar[i] - tau * ((alpha+beta)/2) * (matC[i]/normC);
-    //cout << newp[i] << endl;
-  }
-  
-  double newro = tau*alpha*beta;
-  
-  ///cout << ">> Compact Disjunctive Cut Insertion" << endl;
-
-  double** P1 = new double*[N+1];
-  double** VDPDV = new double*[N+1];
-  for(i=0; i<N+1; ++i) { // First part of VDPDV
-    P1[i] = new double[N+1];
-    VDPDV[i] = new double[N+1];
-    for(j=0; j<N+1; ++j) {
-      P1[i][j] = 0;
-      VDPDV[i][j] = 0;
-    }
-  }
-  
-
-  double** DVTT = new double*[N+1];
-  for(i=0; i<N+1; ++i) {
-    DVTT[i] = new double[N+1];
-    for(j=0; j<N+1; ++j) {
-      //cout << i << "," << j << endl;
-      DVTT[i][j] = DhalfVT[j][i];
-    }
-  }
-  
-
-  matMult(DVTT, newP, P1, N+1);
-  matMult(P1, DhalfVT, VDPDV, N+1);
-  
-  
-  double* pDV = new double[N+1];
-
-  for(i=0; i<N+1; ++i) {
-    pDV[i] = 0;
-    for(j=0; j<N+1; ++j) {
-      pDV[i] = pDV[i] + newp[j]*DhalfVT[j][i];
-    }
-  }
-  
-  int cutidx = 0;
-  
-  problem = MSK_getnumcon(env,&cutidx); 
-  problem = MSK_appendcons(env,1); 
-  
-  problem = MSK_putconbound(env, 
-  cutidx, 
-  MSK_BK_UP, 
-  -MSK_INFINITY, 
-  -newro); 
-  
-  // Give Quadratic Constraints
-  
-  // cout << "CP1" << endl;
-  
-  
-  // Linear Part of QC
-  for(int j=0; j<N+1; j++) {
-    problem = MSK_putaij(env, cutidx, j, 2*pDV[j]);
-  }
-  
-  // cout << "CP2" << endl;  
-  
-  
-  
-  // Q Part of QC
-  int* rowindex = new int[(N+1)*(N+2)/2];
-  int* colindex = new int[(N+1)*(N+2)/2];
-  double* valindex = new double[(N+1)*(N+2)/2];
-  int busindex = 0;
-  for(int i=0; i<N+1; i++) {
-    for(int j=0; j<i+1; j++) {
-      rowindex[busindex]=i;
-      colindex[busindex]=j;
-      valindex[busindex]=2*VDPDV[i][j];
-      
-      busindex++;
-    }
-    
-  }
-  // cout << "CP3" << endl;  
-  
-  
-  MSK_putqconk(env, cutidx, (N+1)*(N+2)/2, rowindex, colindex, valindex);
-  
-  // cout << "CP4" << endl;  
-  
-  //MSK_writedata(env, "afterCut.lp");
-  //MSK_writedata(env, "afterCut.mps");
-  
-  // CPLEX STUFF
-  /* IloExpr quadCut(env);
-    for (i = 1; i < N+1; ++i) { // Quadratic Part - Only z variables
-      for (j = 1; j < N+1; ++j) {
-        quadCut += VDPDV[i][j]*(*var_z)[i-1]*(*var_z)[j-1];
-      }
-      quadCut += 2*pDV[i]*(*var_z)[i-1];
-    }
-
-    for (j= 1; j<N+1; ++j) { // Quadratic Part - t z
-      quadCut += VDPDV[0][j]*(*var_t)*(*var_z)[j-1];
-      quadCut += VDPDV[j][0]*(*var_t)*(*var_z)[j-1];
-    }
-
-    // Quadratic part - t t
-    quadCut += VDPDV[0][0]*(*var_t)*(*var_t);
-
-    quadCut += 2*pDV[0]*(*var_t);
-
-    quadCut += 1*newro; */
-  
-  delete[] matC;
-  
-  for(int i=0; i<N+1; ++i) {
-    delete[] newP[i];
-    delete[] P1[i];
-    delete[] VDPDV[i];
-    delete[] DVTT[i];
-  }
-  delete[] DVTT;
-  delete[] newP;
-  delete[] P1;
-  delete[] VDPDV;
-  delete[] newp;
-  delete[] rowindex;
-  delete[] colindex;
-  delete[] valindex;
-}
-
-
-
-
 
 int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* pBar,  double** DhalfVT,  double** VDhalfinv) {
   
@@ -993,7 +670,64 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
     return 1;
     
   }
-  
+  else if(PROBLEMCODE==4) { // Diversification
+    
+    int nofAsset = 3;
+    int bAsset = 0;
+    
+    if(asset==1 || asset==2 || asset==3) { // Germany
+      bAsset = 1;
+    }
+    else if(asset==4 || asset==5 || asset ==6) { // France
+      bAsset = 4;
+    }
+    else if(asset==7 || asset==8 || asset ==9) { // Japan
+      bAsset = 7;
+    }
+    else if(asset==10 || asset==11 || asset ==12) { // UK
+      bAsset = 10;
+    }
+    else if(asset==13 || asset==14) { // US
+      bAsset = 13;
+      nofAsset = 2;
+    }
+    else if(asset==15 || asset==16 || asset ==17) { // Canada
+      bAsset = 15;
+    }
+    else if(asset==18 || asset==19 || asset ==20) { // Australia
+      bAsset = 18;
+    }
+
+    int* zrowindex = new int[nofAsset];
+    int* zcolindex = new int[nofAsset];
+    double*  zvalindex = new double[nofAsset];
+    for(int i=0; i<nofAsset; ++i) {
+      zrowindex[i] = N+bAsset+i;
+      zcolindex[i] = N+bAsset+i;
+      if(bAsset+i == asset) { // if selected asset
+	zvalindex[i] = -2;
+      }
+      else {
+	zvalindex[i] = 2;
+      }
+    }
+
+    int cutidx;
+    MSK_getnumcon(env,&cutidx);
+    MSK_appendcons(env,1);
+    MSK_putqconk(env, cutidx, nofAsset, zrowindex, zcolindex, zvalindex);
+    MSK_putaij(env, cutidx, N+asset, 2);
+    MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, 1); 
+    
+    MSK_toconic(env);
+
+    delete[] zrowindex;
+    delete[] zcolindex;
+    delete[] zvalindex;
+    
+    
+    return 1;
+  }
   
   
 
@@ -1017,84 +751,6 @@ void matMult( double** mA,  double** mB, double** mC, int sizeN) {
   }
 
 }
-
-
-/**
-* Generic continuous problem solver for AA
-*/
-int solveWithMOSEK(MSKtask_t realtask, MSKrescodee & problem, double* solution, int type) {
-  
-  // MOSEK Interface
-  //MSKtask_t task = (MSKtask_t) env;
-  //MSKrescodee r = (MSKrescodee) problem;
-  
-  MSKtask_t task;
-  
-  //MSKtask_t task;
-  //MSK_clonetask(myenv, &task);
-  MSK_clonetask(realtask, &task);
-  MSKrescodee r(problem);
-  // TODO Open this
-  //r = MSK_linkfunctotaskstream(task,MSK_STREAM_LOG,NULL,printtxt);
-  
-  //double maxtime = 3600;
-  
-  MSK_putcallbackfunc(task,
-  usercallback,
-  (void *) &task);
-  
-  int N = 0;
-  MSK_getnumvar(task,&N);
-  
-  for(int j=0; j<N-1; j++) {
-    if(type==0) {
-      r = MSK_putvartype(task,j+1,MSK_VAR_TYPE_CONT);
-    } else if(type==1) {
-      r = MSK_putvartype(task,j+1,MSK_VAR_TYPE_INT);
-    }
-  }
-  
-  cout << r << endl;
-  
-  MSKrescodee trmcode;
-  
-  stringstream filename;
-  if(type==0)
-  filename << "aa_cont_" << (N-1) << ".lp";
-  else
-  filename << "aa_int_" << (N-1) << ".lp"; 
-  
-
-  if(FILEOUTPUT)
-    MSK_writedata(task, filename.str().c_str());
-  
-  // cout << "CP30" << endl;
-  try{
-    r = MSK_optimizetrm(task,&trmcode);
-  } catch(int e) {
-    
-  }
-  
-  // cout << "CP31" << endl;
-  
-  if(type==0) // Continuous QP
-  MSK_getxx(task, MSK_SOL_ITR, solution); // Interior Point
-  else if(type==1) // Mixed-Integer QP
-  MSK_getxx(task, MSK_SOL_ITG, solution); // Integer Solution
-  
-  // cout << "CP32" << endl;
-  
-  cout << "Solution: " << endl;
-  for(int j=0; j<N+1; j++) {
-    cout << solution[j] << endl;
-  }
-  
-  
-  return 1;
-  
-}
-
-
 
 int nextCut(int N, int heuType, double* soln, vector< vector<int> > *usedCuts) {
   /** In this part we will check the solution
@@ -1126,6 +782,35 @@ int nextCut(int N, int heuType, double* soln, vector< vector<int> > *usedCuts) {
       diff[i] = rand() % 300;
     }
   }
+  else if(heuType==3) { //bonami dynamic
+    for(int i=0; i<N; ++i) {
+      double delta_lb = (soln[i]-floor(soln[i]))*(soln[i]-floor(soln[i]))*Q[i][i];
+      double delta_ub = (ceil(soln[i])-soln[i])*(ceil(soln[i])-soln[i])*Q[i][i];
+      double lower = 0;
+      double upper = 0;
+      if(delta_lb < delta_ub) {
+	lower = delta_lb;
+	upper = delta_ub;
+      } else {
+	lower = delta_ub;
+	upper = delta_ub;
+      }
+      diff[i] = 1*lower + 2*upper;
+    }
+  }
+  else if(heuType==4) { //bonami static
+    for(i=0; i<N; ++i) {
+      diff[i] = Q[i][i];
+    }
+  }
+  
+  // Prevent integer cuts!
+  for(i=0; i<N; ++i) {
+    if( fabs(soln[i]-round(soln[i])) < integerTolerance_) {
+      diff[i] = 0;
+    }
+  }
+
 
   // Step 2: Find feasible cuts
   for(i=0; i<N; ++i) { // At most N iteration is needed
@@ -1167,16 +852,10 @@ int nextCut(int N, int heuType, double* soln, vector< vector<int> > *usedCuts) {
       // Go on for the next candidate
     }
   }
-  
-  
+    
   delete[] diff;
-  
   return status;
 }
-
-
-
-
 
 void readDoubleArray(string _filename, int N, double* target) {
   ifstream inputFile(_filename.c_str()); //"data/NASDAQ-P-16"); //"data/NASDAQ-mu-16");
@@ -1216,44 +895,3 @@ void readDouble2DArray(string _filename, int N, double** target) {
     }
   }
 }
-
-
-/*
-OLD CONE CODES
-
-    // 1) new variable
-    int numvar;
-    MSK_getnumvar (env, &numvar); 
-    MSK_appendvars (env, 1);
-    MSK_putvarbound(env, numvar, MSK_BK_LO, 0, MSK_INFINITY);
-    MSK_putvarname(env, numvar, "u");
-    
-    // 2) Linear map
-    int numcon;
-    MSK_getnumcon(env, &numcon);
-    MSK_appendcons(env, 1);
-    MSK_putaij(env, numcon, numvar, 1);
-    double sqtau = -sqrt(fabs(1+tau));
-    MSK_putaij(env, numcon, N+asset, sqtau);
-    double linmaprhs = - (sqrt(fabs(1+tau))/(1+tau)) * tau / 2;
-    MSK_putconbound(env, numcon, MSK_BK_RA, linmaprhs, linmaprhs);
-    
-    
-    // 3) Conic Constraint DCC 
-    int* csub = new int[N];
-    int loopindex = 1;
-    csub[0] = numvar;
-    for(int i=0; i<N; i++) {
-      if(i==asset-1) {
-	// skip it
-      } else {
-	csub[loopindex] = N+i+1;
-	loopindex++;
-      }
-    }
-    int r = MSK_appendcone(env, MSK_CT_QUAD, 0.0, N, csub);
-    
-*/
-
-
-

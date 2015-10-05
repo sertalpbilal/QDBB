@@ -25,10 +25,11 @@ void initEigTransform(int N, double** Q_hat, double* pBar1, double** DhalfVT, do
 int createRoundlot(MSKtask_t* task);
 int createCardinality(MSKtask_t* task);
 int createSingleCardinality(MSKtask_t* task);
+int createDiverse(MSKtask_t* task);
 int deleteRoundlot();
 int deleteCardinality();
 int deleteSingleCardinality();
-
+int deleteDiverse();
 
 #endif
 

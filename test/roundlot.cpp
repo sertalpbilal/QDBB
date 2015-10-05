@@ -6,6 +6,7 @@ extern double* pBar;
 extern double** DhalfVT;
 extern double** VDhalfinv;
 extern double* mu;
+extern double** Q;
 extern int localN;
 
 
@@ -35,15 +36,9 @@ int createRoundlot(MSKtask_t* task)
   double mu_0 = 0.001;
   double C = C_;
   
-  double **Q = new double*[N];
-  for(int i = 0; i < N; ++i) {
-    Q[i] = new double[N];
-  }
-  
   int* M = new int[N];
   double* P = new double[N];
-  mu = new double[N];
-
+  
   // Read data files
   char qname[80];
   char pname[80];
@@ -217,33 +212,14 @@ int createRoundlot(MSKtask_t* task)
   
   MSK_putqconk(*task, 0, (N+1)*N/2, rowindex, colindex, valindex);
   
-  //MSK_writedata(*task, "beforeCut.mps");
-  
   string solver("MOSEK");
-  
-  //cout << task << endl;
-  
-  // vector< vector<int> > usedCuts; // Test structure for keeping old cuts and values
-  // for (int i = 0; i < N; i++) { // Initialize array of used cuts
-        // vector<int> row; // Create an empty row for each asset
-        // usedCuts.push_back(row); // Add the row to the main vector
-    // }
-  
-  r;
-  
-  //*originalProblem = &task;
   
   delete[] rowindex;
   delete[] colindex;
   delete[] valindex;
   
-  for(int i=0; i<N; i++) {
-    delete[] Q[i];
-  }
-  delete[] Q;
   delete[] M;
   delete[] P;
-  delete[] mu;
   delete[] phat;
   delete[] mpbar;
   
@@ -252,14 +228,6 @@ int createRoundlot(MSKtask_t* task)
   }
   delete[] Q_hat;
   delete[] ct;
-  
-  // Not sure if it should be here!!!!!
-  /*
-  delete[] pBar;
-  delete[] DhalfVt; -- matrix
-  delete[] VDhalfinv; -- matrix
-  
-  */
   
   return 1;
   

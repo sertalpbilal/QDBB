@@ -3,7 +3,7 @@
 
 //#define OUTLEV 5
 
-int OUTLEV = 5;
+int OUTLEV = 1;
 int FILEOUTPUT = 0;
 
 #define printText(flag, ...) if (flag <= OUTLEV) { printf("%d:%*s",flag,2*flag,""); printf(__VA_ARGS__); printf("\n"); }
@@ -42,7 +42,7 @@ int totalFadingCuts_ = 0;
 int totalNodeFadingCuts_ = 0;
 int bestNodeNumber_ = 0;
 double objectiveTolerance_ = 1e-3;
-double integerTolerance_ = 1e-6;
+double integerTolerance_ = 1e-5;
 int numVars_ = 0;
 int N = 0; /* number of assets, always 1 less than numVars */
 /* TODO Change N to number of variables! */
@@ -53,6 +53,7 @@ std::vector< Node* > allNodeList_; // Keeps pointer of all nodes for destructor
 
 extern int PROBLEMCODE;
 extern double* mu;
+extern double** Q;
 
 int firstFeasibleObjective_ = 0;
 
@@ -114,6 +115,8 @@ int parseInfo(int argc, char* argv[]) {
 	branchingRule_ = 2;
       else if(strcmp(argv[i+1],"bonami")==0) // bonami
 	branchingRule_ = 3;
+      else if(strcmp(argv[i+1],"hvar")==0) // bonami-1 static
+	branchingRule_ = 4;      
     }
 
     if(strcmp(tmp, "-c")==0) { // Cut rule
@@ -125,6 +128,8 @@ int parseInfo(int argc, char* argv[]) {
 	cutPriority_ = 2;
       else if(strcmp(argv[i+1],"bonami")==0) // bonami
 	cutPriority_ = 3;
+      else if(strcmp(argv[i+1],"hvar")==0) // bonami-1 static
+	cutPriority_ = 4;
     }
 
     if(strcmp(tmp, "-s")==0) { // Search rule
@@ -170,6 +175,11 @@ int startBB(int argc, char* argv[]) {
   root = new Node; //(Node *) malloc(sizeof(Node));
   createNewNode(0, &root, -1 /*var id*/, 0 /* bound */, 0 /* lower */);
   
+  if(OUTLEV==1) {
+    printText(1, "Update      Node    Best Obj.    Current Gap   Lowest LB");
+    printText(1, "---------   -----   ----------   -----------   ----------");
+  }      
+
   clock_t begin = clock();
   while(true) {
     
@@ -194,7 +204,7 @@ int startBB(int argc, char* argv[]) {
       if(activeNode->intfeasible) {
         goto finaldecision;
       }
-      if(activeNode->nodeObj > globalUpperBound_ + 1e-6) {
+      if(activeNode->nodeObj > globalUpperBound_ + 1e-12) {
         printText(3, "Node (%d) has a higher objective than upper bound, pruning...", activeNode->ID);
         goto finaldecision;
       }
@@ -288,15 +298,16 @@ int startBB(int argc, char* argv[]) {
 
 finaldecision:
 
-    if( activeNode->feasible && activeNode->intfeasible) {
+    if( activeNode->feasible && activeNode->intfeasible) { // better objective function
       if(activeNode->nodeObj < globalUpperBound_) {
         globalUpperBound_ = activeNode->nodeObj;
 	finiteUpperBound_ = 1;
         bestSoln_ = activeNode->nodeSoln;
 	bestNode = activeNode;
-	//double currgap = 0;
-	
-        printText(1, "Best solution update, node (%4d) objective: %.3f, gap: %.4f", activeNode->ID, globalUpperBound_, 0.0);
+	double curGap = 0;
+	double lowBnd = 0;
+	getCurrentGap(&curGap, &lowBnd);
+        printText(1, "New bound   %5d   %10.3f     %6.4f%%     %10.3f", activeNode->ID, globalUpperBound_, curGap, lowBnd);
         bestNodeNumber_ = activeNode->ID;
         eliminateNodes();
 	if(FILEOUTPUT)
@@ -328,9 +339,9 @@ finaldecision:
   printText(2, "Values: ");
   for(int i=0; i<N; i++) {
     if(bestSoln_[i] < integerTolerance_) {
-      printText(3, "  %2d: %.8f\t%.8f", (i+1), bestSoln_[i], bestNode->mosekSoln[i+1]);
+      printText(3, "  %2d: %.12f\t%.8f", (i+1), bestSoln_[i], bestNode->mosekSoln[i+1]);
     } else {
-      printText(2, "  %2d: %.8f\t%.8f", (i+1), bestSoln_[i], bestNode->mosekSoln[i+1]);
+      printText(2, "  %2d: %.12f\t%.8f", (i+1), bestSoln_[i], bestNode->mosekSoln[i+1]);
     }
   }
   for(int i=0; i<2*N+1; i++) {
@@ -400,10 +411,46 @@ int branch(Node* activeNode) {
     
     
   } 
-  else if (branchingRule_ == 3) { // bonami 
+  else if (branchingRule_ == 3) { // bonami dynamic
+    double hdiff = 0;
+    asset = 0;
+    double* soln = activeNode->nodeSoln;
+    for(int i=0; i<N; ++i) {
+      double delta_lb = (soln[i]-floor(soln[i]))*(soln[i]-floor(soln[i]))*Q[i][i];
+      double delta_ub = (ceil(soln[i])-soln[i])*(ceil(soln[i])-soln[i])*Q[i][i];
+      double lower = 0;
+      double upper = 0;
+      if(delta_lb < delta_ub) {
+	lower = delta_lb;
+	upper = delta_ub;
+      } else {
+	lower = delta_ub;
+	upper = delta_ub;
+      }
+      double score = 1*lower + 2*upper;
+      //printf("[%d] score: %f\n",i,score);
+      if( fabs(activeNode->nodeSoln[i] - round(activeNode->nodeSoln[i])) > integerTolerance_) {
+	if(score > hdiff) {
+	  hdiff = score;
+	  asset = i;
+	}
+      }
+    }
     
     // not implemented yet!
     
+  }
+  else if (branchingRule_ == 4) { // bonami static - hvar
+    asset = 0;
+    double hvar = Q[0][0];
+    for(int i=0; i<N; ++i) {
+      if( fabs(activeNode->nodeSoln[i] - round(activeNode->nodeSoln[i])) > integerTolerance_) {	
+	if(Q[i][i] > hvar) {
+	  asset = i;
+	  hvar = Q[i][i];
+	}
+      }
+    }
   }
   
   printText(2,"Branching, var(%2d)<=%.0f  or  var(%2d)>=%.0f, \t [Node %d]: [%d] and [%d]",asset,floor(activeNode->nodeSoln[asset]), asset, ceil(activeNode->nodeSoln[asset]), activeNode->ID,totalNodes_, totalNodes_+1);
@@ -422,6 +469,7 @@ int branch(Node* activeNode) {
   // Add them to active list
   // Done in create
 
+  
   printToFile(leftNode);
   printToFile(rightNode);
   
@@ -436,10 +484,12 @@ int cut(Node* activeNode) {
   if(variableForCut >= 0 ) {
 
     double currsoln = activeNode->nodeSoln[variableForCut];
+    if(PROBLEMCODE==1) { // TODO Remove this if condition in future - problem specific
     if(fabs(currsoln-round(currsoln))<1e-1) {
       printText(3,"Node (%d) variable %d is close to integer %.3f, cut is not generated",activeNode->ID,variableForCut,currsoln);
       return 0;
     } 
+    }
 
 
 
@@ -563,14 +613,12 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
     
     //MSK_analyzeproblem(newProblem, MSK_STREAM_LOG);
     int corrector = 0;
-    if(PROBLEMCODE==2) {
+    if(PROBLEMCODE==2 || PROBLEMCODE==3 || PROBLEMCODE==4) {
       corrector = N;
-      bound = bound + (1-2*lower)*(1e-6);
+      //if(bound!=0)
+      //bound = bound + (1-2*lower)*(1e-6);
     }
-    if(PROBLEMCODE==3) {
-      corrector = N;
-      bound = bound + (1-2*lower)*(1e-6);
-    }
+
     
     //bound = bound; // + 1e-8
     // printf("Bound: %.8f\n",bound);
@@ -618,6 +666,29 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
   return status;
 }
 
+int getCurrentGap(double* curGap, double* lowerBound) {
+  // Loop thru node list
+  // if not eliminated, not processed and has not a child
+  // if lower bound is less than current lb, update it
+  
+  double lb = std::numeric_limits<double>::infinity();
+  for(unsigned int i=0; i < nodeList_.size(); i++) {
+    if(!nodeList_[i]->eliminated) {
+      if(nodeList_[i]->lowerBound < lb) {
+	lb = nodeList_[i]->lowerBound;
+      }
+    }
+  }
+
+  *lowerBound = lb;
+
+  // curGap = (UB-LB)/UB;
+
+  *curGap = (globalUpperBound_ - lb) / (globalUpperBound_) * 100;
+
+  return 1;
+
+}
 
 int solveLP(Node* aNode) {
   int status = 0;
@@ -636,7 +707,7 @@ int solveLP(Node* aNode) {
   //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_DFEAS, 1e-16);
   //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_REL_GAP, 1e-16);
   //MSK_putintparam(mtask, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_CONIC);
-  MSK_putintparam(mtask, MSK_IPAR_INTPNT_MAX_ITERATIONS, 20000);
+  MSK_putintparam(mtask, MSK_IPAR_INTPNT_MAX_ITERATIONS, 30000);
   MSK_putintparam(mtask, MSK_IPAR_BI_IGNORE_MAX_ITER, MSK_ON);
   //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
 
@@ -678,7 +749,7 @@ int solveLP(Node* aNode) {
         MSK_getsolutionslice(mtask, MSK_SOL_ITR, MSK_SOL_ITEM_XX, 1, N+1, aNode->nodeSoln);
       } else if(PROBLEMCODE==2) {
         MSK_getsolutionslice(mtask, MSK_SOL_ITR, MSK_SOL_ITEM_XX, N+1, 2*N+1, aNode->nodeSoln);
-      } else if(PROBLEMCODE==3) {
+      } else if(PROBLEMCODE==3 || PROBLEMCODE==4) {
 	MSK_getsolutionslice(mtask, MSK_SOL_ITR, MSK_SOL_ITEM_XX, N+1, 2*N+1, aNode->nodeSoln);
       }
       MSK_getsolutionslice(mtask, MSK_SOL_ITR, MSK_SOL_ITEM_XX, 0, 2*N+1, aNode->mosekSoln);

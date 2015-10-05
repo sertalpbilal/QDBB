@@ -27,7 +27,8 @@ SRCPORT = $(SRCDIR)/qdbb.cpp \
 	$(TESTDIR)/portfolio.cpp \
 	$(TESTDIR)/roundlot.cpp \
 	$(TESTDIR)/cardinality.cpp \
-	$(TESTDIR)/single.cpp
+	$(TESTDIR)/single.cpp \
+	$(TESTDIR)/diverse.cpp
 #test_main.cpp
 #$(SRCDIR)/portfolio.cpp
 
@@ -39,8 +40,8 @@ all: $(SRCFILES)
 
 portfolio: $(SRCPORT)
 	$(CC) $(SRCPORT) -o portfolio $(INCLUDES) $(LIBS)
-	# ./portfolio -type          -data    -asset    -capital        -return      -branch    -cut    -search     -cutlimit     -term   -iter   -cutpiter   -threshold
-	# ./portfolio -type roundlot -data AA -asset 10 -capital 100000 -return 0.06 -branch mf -cut mf -search df0 -cutlimit 100 -term 0 -iter 1 -cutpiter 2 -threshold 0.01
+	# ./portfolio -type          -d    -a    -C        -r      -b    -c    -s     -l     -x   -i   -p   -o   -f
+	# ./portfolio -type roundlot -d AA -a 10 -C 100000 -r 0.06 -b mf -c mf -s df0 -l 100 -x 0 -i 1 -p 2 -o 1 -f 0
 
 roundlot: $(SRCROUNDLOT)
 	$(CC) $(SRCROUNDLOT) -o roundlot $(INCLUDES) $(LIBS)

@@ -20,12 +20,12 @@ for efile in files:
 capital = [100000]
 ret = [0.041, 0.061]
 cardinality = [1, 3, 5]
-branch = ['mf','hc'] # random is out
-cut = ['mf', 'hc'] # random is out
+branch = ['mf','hc', 'bonami', 'hvar'] # random is out
+cut = ['mf', 'hc', 'bonami', 'hvar'] # random is out
 search = ['df0', 'df1', 'best'] # breadth is out
 cutiter = [1, 2]
-cutperiter = [1, 3]
-cutlim = [10, 100]
+cutperiter = [1]
+cutlim = [5, 100]
 
 # Step 0.1: Open file
 cfile = open('condor.sub','w')
