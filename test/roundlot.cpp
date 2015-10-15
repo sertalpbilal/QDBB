@@ -17,7 +17,7 @@ extern int k_;
 extern int cardinaltype_;
 extern double C_;
 extern string datafolder_;
-
+extern int FILEOUTPUT;
 extern int PROBLEMCODE; // = 1;
 
 
@@ -211,7 +211,9 @@ int createRoundlot(MSKtask_t* task)
   }
   
   MSK_putqconk(*task, 0, (N+1)*N/2, rowindex, colindex, valindex);
-  
+  if(FILEOUTPUT)
+    MSK_writedata(*task, "result/RoundlotOriginal.mps");
+
   string solver("MOSEK");
   
   delete[] rowindex;

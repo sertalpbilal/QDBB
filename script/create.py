@@ -18,14 +18,14 @@ for efile in files:
 
 # Step 0.0: Arrays
 capital = [100000]
-ret = [0.041, 0.061]
-cardinality = [1, 3, 5]
-branch = ['mf','hc', 'bonami', 'hvar'] # random is out
-cut = ['mf', 'hc', 'bonami', 'hvar'] # random is out
+ret = [0.06]
+cardinality = [3, 5]
+branch = ['mf', 'hc', 'bonami', 'hvar'] # hc and random is out
+cut = ['mf', 'hc', 'bonami', 'hvar'] # hc and random is out
 search = ['df0', 'df1', 'best'] # breadth is out
-cutiter = [1, 2]
+cutiter = [1]
 cutperiter = [1]
-cutlim = [5, 100]
+cutlim = [20]
 
 # Step 0.1: Open file
 cfile = open('condor.sub','w')
@@ -36,6 +36,7 @@ common_command = \
 'Executable = ../test/portfolio \n\
 Universe   = vanilla\n\
 getenv     = true\n\
+request_cpus = 1\n\
 transfer_executable = false \n\
 \n\n'
 cfile.write(common_command)

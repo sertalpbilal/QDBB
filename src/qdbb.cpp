@@ -42,7 +42,7 @@ int totalFadingCuts_ = 0;
 int totalNodeFadingCuts_ = 0;
 int bestNodeNumber_ = 0;
 double objectiveTolerance_ = 1e-3;
-double integerTolerance_ = 1e-5;
+double integerTolerance_ = 1e-6;
 int numVars_ = 0;
 int N = 0; /* number of assets, always 1 less than numVars */
 /* TODO Change N to number of variables! */
@@ -359,6 +359,7 @@ finaldecision:
   printText(1, "Total objective improvement: %e", totalImprovement_);
   printText(1, "Best objective improvement: %e", bestImprovement_);
   printText(1,"Optimal node: %d", bestNodeNumber_);
+  printText(1,"Optimal node depth: %d", bestNode->depth);
   printText(1,"Optimal value: %f", globalUpperBound_);
   printText(1,"Done...");
   return status;
@@ -412,7 +413,7 @@ int branch(Node* activeNode) {
     
   } 
   else if (branchingRule_ == 3) { // bonami dynamic
-    double hdiff = 0;
+    double hdiff = -std::numeric_limits<double>::infinity();
     asset = 0;
     double* soln = activeNode->nodeSoln;
     for(int i=0; i<N; ++i) {
@@ -442,9 +443,9 @@ int branch(Node* activeNode) {
   }
   else if (branchingRule_ == 4) { // bonami static - hvar
     asset = 0;
-    double hvar = Q[0][0];
+    double hvar = -std::numeric_limits<double>::infinity();
     for(int i=0; i<N; ++i) {
-      if( fabs(activeNode->nodeSoln[i] - round(activeNode->nodeSoln[i])) > integerTolerance_) {	
+      if( fabs(activeNode->nodeSoln[i] - round(activeNode->nodeSoln[i])) > integerTolerance_) {
 	if(Q[i][i] > hvar) {
 	  asset = i;
 	  hvar = Q[i][i];
@@ -509,12 +510,20 @@ int selectNode(Node** activeNode) {
   unsigned int selected = 0;
   int max_depth = -1;
 
+  double lowestlb = nodeList_[0]->lowerBound;
+    for(unsigned int i=1; i < nodeList_.size(); i++) {
+      if(nodeList_[i]->lowerBound < lowestlb) {
+	lowestlb = nodeList_[i]->lowerBound;
+      }
+    }
+    double redline = 10*fabs(lowestlb);
+    //printf("Lowest LB: %.5f, Redline: %.5f\n",lowestlb, redline);
 
   if(searchRule_ == 0) {  // df0 depth-first left
     *activeNode = nodeList_[0];
     max_depth = nodeList_[0]->depth;
     for(unsigned int i=0; i < nodeList_.size(); i++) {
-      if(nodeList_[i]->depth > max_depth) {
+      if(nodeList_[i]->depth > max_depth && nodeList_[i]->lowerBound < redline) {
 	selected = i;
 	*activeNode = nodeList_[i];
 	max_depth = nodeList_[i]->depth;
@@ -524,8 +533,8 @@ int selectNode(Node** activeNode) {
   else if(searchRule_ == 1) { // df1 depth-first right
     *activeNode = nodeList_[0];
     max_depth = nodeList_[0]->depth;
-    for(unsigned int i=0; i < nodeList_.size(); i++) {
-      if(nodeList_[i]->depth >= max_depth) {
+    for(unsigned int i=1; i < nodeList_.size(); i++) {
+      if(nodeList_[i]->depth >= max_depth && nodeList_[i]->lowerBound < redline) {
 	selected = i;
 	*activeNode = nodeList_[i];
 	max_depth = nodeList_[i]->depth;
@@ -540,7 +549,7 @@ int selectNode(Node** activeNode) {
     *activeNode = nodeList_[0];
     double bestbound = nodeList_[0]->lowerBound;
     for(unsigned int i=1; i < nodeList_.size(); i++) {
-      if(nodeList_[i]->lowerBound > bestbound) {
+      if(nodeList_[i]->lowerBound > bestbound && nodeList_[i]->lowerBound < redline) {
 	selected = i;
 	*activeNode = nodeList_[i];
 	bestbound = nodeList_[i]->lowerBound;
@@ -618,7 +627,7 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
       //if(bound!=0)
       //bound = bound + (1-2*lower)*(1e-6);
     }
-
+    
     
     //bound = bound; // + 1e-8
     // printf("Bound: %.8f\n",bound);
@@ -702,6 +711,7 @@ int solveLP(Node* aNode) {
   MSK_putintparam(mtask, MSK_IPAR_MIO_MODE, MSK_MIO_MODE_IGNORED); // make it LP
   MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_LINDEP_USE, MSK_OFF);
   MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_USE, MSK_PRESOLVE_MODE_OFF);
+  MSK_putintparam(mtask, MSK_IPAR_NUM_THREADS, 1);
   // MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_INFEAS, 1e-16);
   //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_PFEAS, 1e-16);
   //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_DFEAS, 1e-16);
@@ -711,17 +721,18 @@ int solveLP(Node* aNode) {
   MSK_putintparam(mtask, MSK_IPAR_BI_IGNORE_MAX_ITER, MSK_ON);
   //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
 
-  
+  //int prep = 0;
+ solutionpoint:
 
   MSKrescodee trmcode;
-  MSK_optimizetrm(mtask,&trmcode);
+  MSKrescodee r; 
+  r = MSK_optimizetrm(mtask,&trmcode);
   printText(6,"Problem is solved with  MOSEK");
   
   MSK_solutionsummary(mtask,MSK_STREAM_LOG);
   
   MSKsolstae solsta;
-  MSK_getsolsta (mtask, MSK_SOL_ITR, &solsta); 
-  
+  MSKrescodee obsolsta = MSK_getsolsta (mtask, MSK_SOL_ITR, &solsta); 
   MSKrealt primalobj;
 
   //printf("TRMCODE: %d\n", trmcode);
@@ -731,12 +742,15 @@ int solveLP(Node* aNode) {
     //printf("Stall!\n");
   }
   
+  if (obsolsta == MSK_RES_OK) {
   switch( solsta ) 
   { 
   case MSK_SOL_STA_OPTIMAL: 
   case MSK_SOL_STA_NEAR_OPTIMAL: 
   case MSK_SOL_STA_PRIM_FEAS:
+  case MSK_SOL_STA_PRIM_AND_DUAL_FEAS:
   case MSK_SOL_STA_INTEGER_OPTIMAL:
+  case MSK_SOL_STA_NEAR_INTEGER_OPTIMAL:
      
       aNode->feasible = true;
       MSK_getprimalobj(mtask, MSK_SOL_ITR, &primalobj);
@@ -772,13 +786,15 @@ int solveLP(Node* aNode) {
       MSK_writedata(mtask, fname);
     break; 
   case MSK_SOL_STA_UNKNOWN: 
-  default: 
-    
-    
+  default:  // most probably solution is basic
     aNode->feasible = false;
     printText(3,"Node status unknown %d, term code: %d, node is pruned.",solsta,trmcode);
-
     break;
+    
+
+  }
+  } else {
+    printText(3,"Solution status cannot be obtained, not OK");
   } 
 
   //
