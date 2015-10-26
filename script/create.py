@@ -23,9 +23,9 @@ cardinality = [3, 5]
 branch = ['mf', 'hc', 'bonami', 'hvar'] # hc and random is out
 cut = ['mf', 'hc', 'bonami', 'hvar'] # hc and random is out
 search = ['df0', 'df1', 'best'] # breadth is out
-cutiter = [1]
+cutiter = [1, 6]
 cutperiter = [1]
-cutlim = [20]
+cutlim = [10]
 
 # Step 0.1: Open file
 cfile = open('condor.sub','w')

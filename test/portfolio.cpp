@@ -1,6 +1,10 @@
 
 #include "portfolio.h"
 
+#define printText(flag, ...) if (flag <= OUTLEV) { printf("%d:%*s",flag,2*flag,""); printf(__VA_ARGS__); printf("\n"); }
+
+extern int OUTLEV;
+
 double* pBar;
 double** DhalfVT; 
 double** VDhalfinv;
@@ -431,7 +435,7 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
         tvalue = tvalue + 2*pDV[i]*mysolnxx[i];
       }
       //std::cout << "Value is : " << tvalue << ", rho is : " << -newro << std::endl;
-      if(tvalue+newro<1e-1) {
+      if(tvalue+newro < 1e-2) { // TODO Make this a parameter
         response = 0;
         free(mysolnxx);
         
@@ -449,11 +453,11 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
         delete[] VDPDV;
         delete[] newp;
         delete[] pDV;
-        
+        printText(7,"Cut is NOT deep: %f",tvalue+newro);
         return 0;
       }
       else {
-	//printText(7,"Cut is deep: %f\n", tvalue+newro);
+	printText(7,"Cut is deep: %f", tvalue+newro);
       }
       
       free(mysolnxx);
@@ -493,7 +497,9 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
         rowindex[busindex]=i;
         colindex[busindex]=j;
         valindex[busindex]=2*VDPDV[i][j];
-        
+        //if(i==j) { // diagonal
+	//  valindex[busindex] += 2*0.000001; // TODO DEBUGGING Q NOT PSD ERROR
+	//}
         busindex++;
       }
       

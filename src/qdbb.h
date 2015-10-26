@@ -39,9 +39,11 @@ struct Node {
     bool        feasible;
     bool        intfeasible;
     bool        eliminated;
+    bool        processed;
     MSKtask_t   problem;
     Node*       parent;
-  std::vector< std::vector <int> > usedCuts;
+    std::vector< std::vector <int> > usedCuts;
+    std::vector< std::vector <int> > usedBranches;
     int depth;
     int totalCuts;
 };

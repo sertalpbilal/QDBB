@@ -42,7 +42,7 @@ int totalFadingCuts_ = 0;
 int totalNodeFadingCuts_ = 0;
 int bestNodeNumber_ = 0;
 double objectiveTolerance_ = 1e-3;
-double integerTolerance_ = 1e-6;
+double integerTolerance_ = 2*1e-4;
 int numVars_ = 0;
 int N = 0; /* number of assets, always 1 less than numVars */
 /* TODO Change N to number of variables! */
@@ -193,6 +193,7 @@ int startBB(int argc, char* argv[]) {
     selectNode(&activeNode);
     if(!activeNode->eliminated) {
       printText(4, "Processing the node now...");
+      activeNode->processed = true;
       nodesProcessed_++;
       solveLP(activeNode);
       totalSocoSolved_++;
@@ -243,7 +244,7 @@ int startBB(int argc, char* argv[]) {
               totalCutsGenerated_ ++;
               totalCutsApplied_ += isNewCut;
             } else {
-	      printf("Tots: %d, cut lim: %d\n",activeNode->totalCuts,cutLimit_);
+	      //printf("Tots: %d, cut lim: %d\n",activeNode->totalCuts,cutLimit_);
               printText(6, "Cut limit reached for node %d",activeNode->ID);
               break;
             }
@@ -454,7 +455,7 @@ int branch(Node* activeNode) {
     }
   }
   
-  printText(2,"Branching, var(%2d)<=%.0f  or  var(%2d)>=%.0f, \t [Node %d]: [%d] and [%d]",asset,floor(activeNode->nodeSoln[asset]), asset, ceil(activeNode->nodeSoln[asset]), activeNode->ID,totalNodes_, totalNodes_+1);
+  printText(2,"Branching at [Node %04d], on var(%02d), <=%2.0f [Node %04d] and >=%2.0f [Node %04d], Obj: %.5f",activeNode->ID, asset, floor(activeNode->nodeSoln[asset]), totalNodes_, ceil(activeNode->nodeSoln[asset]), totalNodes_+1, activeNode->nodeObj);
   
   // Call newNode twice
 
@@ -588,6 +589,8 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
     for (int i = 0; i < N; ++i) { // Initialize array of used cuts
       std::vector<int> row; // Create an empty row for each asset  
       (*newNode)->usedCuts.push_back(row); // Add the row to the main vector
+      std::vector<int> row2; // Empty row for branch
+      (*newNode)->usedBranches.push_back(row2); // TODO (I'm not using this right now)
     }
     
     
@@ -628,10 +631,30 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
       //bound = bound + (1-2*lower)*(1e-6);
     }
     
-    
+    MSKboundkeye bk, exbk;
+    MSKrealt lbound, exlbound;
+    MSKrealt ubound, exubound;
+    if(lower == 1) {
+      bk = MSK_BK_LO;
+      lbound = bound;
+      ubound = MSK_INFINITY;
+    }
+    else 
+    {
+      bk = MSK_BK_UP;
+      lbound = 0;
+      ubound = bound;
+    }
     //bound = bound; // + 1e-8
     // printf("Bound: %.8f\n",bound);
     if(varID!=-1) {
+      MSK_getvarbound ( 
+				   newProblem, 
+				   varID+corrector+1, 
+				   &exbk, 
+				   &exlbound, 
+				   &exubound);
+      //printf("Variable %d, ex lb: %f, ub: %f\n",varID, exlbound, exubound);
       MSK_chgbound ( 
       newProblem,         //MSKtask_t    task, 
       MSK_ACC_VAR,        //MSKaccmodee  accmode, 
@@ -640,6 +663,19 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
       1,                  //MSKint32t    finite, 
       bound               //MSKrealt     value); 
       );
+      
+      //MSK_putbound(newProblem, MSK_ACC_VAR, varID+corrector+1, bk, lbound, ubound); -- DO NOT USE THIS ONE
+      MSK_getvarbound ( 
+				   newProblem, 
+				   varID+corrector+1, 
+				   &exbk, 
+				   &exlbound, 
+				   &exubound);
+      //printf("Variable %d, ex lb: %f, ub: %f\n",varID, exlbound, exubound);
+      
+    }
+    else {
+      printf("Branching error: -1\n");
     }
     
     std::vector< std::vector <int> > usedCuts;
@@ -647,6 +683,12 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
     for (int i = 0; i < N; i++) { // Initialize array of used cuts
       std::vector<int> newRow(parent->usedCuts[i]); // Create an empty row for each asset
       (*newNode)-> usedCuts.push_back(newRow); // Add the row to the main vector
+    }
+    
+    std::vector< std::vector <int> > usedBranches;
+    for(int i=0; i<N; i++) {
+      std::vector<int> newRow(parent->usedBranches[i]); // empty row
+      (*newNode)-> usedBranches.push_back(newRow);
     }
     
     (*newNode)->ID = totalNodes_;
@@ -680,20 +722,25 @@ int getCurrentGap(double* curGap, double* lowerBound) {
   // if not eliminated, not processed and has not a child
   // if lower bound is less than current lb, update it
   
+  int found = 0;
   double lb = std::numeric_limits<double>::infinity();
   for(unsigned int i=0; i < nodeList_.size(); i++) {
-    if(!nodeList_[i]->eliminated) {
+    if(!nodeList_[i]->eliminated && !nodeList_[i]->processed) {
       if(nodeList_[i]->lowerBound < lb) {
 	lb = nodeList_[i]->lowerBound;
+	found = 1;
       }
     }
   }
 
-  *lowerBound = lb;
-
-  // curGap = (UB-LB)/UB;
-
-  *curGap = (globalUpperBound_ - lb) / (globalUpperBound_) * 100;
+  if(found) {
+    *lowerBound = lb;
+    *curGap = (globalUpperBound_ - lb) / (globalUpperBound_) * 100;
+  }
+  else {
+    *lowerBound = globalUpperBound_;
+    *curGap = 0;
+  }
 
   return 1;
 
@@ -712,16 +759,20 @@ int solveLP(Node* aNode) {
   MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_LINDEP_USE, MSK_OFF);
   MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_USE, MSK_PRESOLVE_MODE_OFF);
   MSK_putintparam(mtask, MSK_IPAR_NUM_THREADS, 1);
-  // MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_INFEAS, 1e-16);
+  MSK_putintparam(mtask, MSK_IPAR_INTPNT_BASIS, 0);
+  //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_INFEAS, 1e-16);
   //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_PFEAS, 1e-16);
+  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_TOL_PFEAS, 1e-16);
   //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_DFEAS, 1e-16);
   //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_REL_GAP, 1e-16);
-  //MSK_putintparam(mtask, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_CONIC);
+  MSK_putintparam(mtask, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_CONIC);
   MSK_putintparam(mtask, MSK_IPAR_INTPNT_MAX_ITERATIONS, 30000);
   MSK_putintparam(mtask, MSK_IPAR_BI_IGNORE_MAX_ITER, MSK_ON);
   //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
+  //MSK_putdouparam(mtask, MSK_DPAR_CHECK_CONVEXITY_REL_TOL, 100000);
 
-  //int prep = 0;
+
+  int reattempted = 1;
  solutionpoint:
 
   MSKrescodee trmcode;
@@ -788,8 +839,26 @@ int solveLP(Node* aNode) {
   case MSK_SOL_STA_UNKNOWN: 
   default:  // most probably solution is basic
     aNode->feasible = false;
-    printText(3,"Node status unknown %d, term code: %d, node is pruned.",solsta,trmcode);
+    if(reattempted) {
+      printText(3,"Node status unknown %d, term code: %d, pruning, attempt failed!",solsta,trmcode);
+    }
+    else {
+      printText(4,"Node status unknown %d, term code: %d, reattempting with higher precision", solsta, trmcode);
+      MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_INFEAS, 1e-16);
+      MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_PFEAS, 1e-16);
+      MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_DFEAS, 1e-16);
+      MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_REL_GAP, 1e-16);
+  
+      reattempted = 1;
+      //goto solutionpoint;
+    }
+    
+    char funame[80];
+    sprintf(funame, "../test/result/unknown%d.mps", aNode->ID);
+    if(FILEOUTPUT)
+      MSK_writedata(mtask, funame);
     break;
+    
     
 
   }
@@ -880,7 +949,7 @@ int printToFile(Node* aNode) {
   int fno = aNode->ID;
   char fname[80];
   sprintf(fname, "../test/result/node%d.mps", fno);
-  //MSK_toconic(aNode->problem);
+  //MSK_toconic(&(aNode->problem));
 
   if(FILEOUTPUT)  
     MSK_writedata(aNode->problem, fname);
