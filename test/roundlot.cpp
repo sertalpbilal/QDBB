@@ -155,7 +155,7 @@ int createRoundlot(MSKtask_t* task)
 	r = MSK_putvarname(*task,j+1,varname.str().c_str());
   }
   r = MSK_putvarname(*task,0,"t");
-  
+  r = r;
   // Give Objective
   r = MSK_putcj(*task,0,1);
   

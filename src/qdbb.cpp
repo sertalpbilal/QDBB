@@ -42,7 +42,7 @@ int totalFadingCuts_ = 0;
 int totalNodeFadingCuts_ = 0;
 int bestNodeNumber_ = 0;
 double objectiveTolerance_ = 1e-3;
-double integerTolerance_ = 2*1e-4;
+double integerTolerance_ = 1e-5;
 int numVars_ = 0;
 int N = 0; /* number of assets, always 1 less than numVars */
 /* TODO Change N to number of variables! */
@@ -631,20 +631,9 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
       //bound = bound + (1-2*lower)*(1e-6);
     }
     
-    MSKboundkeye bk, exbk;
-    MSKrealt lbound, exlbound;
-    MSKrealt ubound, exubound;
-    if(lower == 1) {
-      bk = MSK_BK_LO;
-      lbound = bound;
-      ubound = MSK_INFINITY;
-    }
-    else 
-    {
-      bk = MSK_BK_UP;
-      lbound = 0;
-      ubound = bound;
-    }
+    MSKboundkeye exbk;
+    MSKrealt exlbound;
+    MSKrealt exubound;
     //bound = bound; // + 1e-8
     // printf("Bound: %.8f\n",bound);
     if(varID!=-1) {
@@ -758,6 +747,8 @@ int solveLP(Node* aNode) {
   MSK_putintparam(mtask, MSK_IPAR_MIO_MODE, MSK_MIO_MODE_IGNORED); // make it LP
   MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_LINDEP_USE, MSK_OFF);
   MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_USE, MSK_PRESOLVE_MODE_OFF);
+  MSK_putintparam(mtask, MSK_IPAR_INTPNT_REGULARIZATION_USE, MSK_OFF);
+  MSK_putintparam(mtask, MSK_IPAR_INTPNT_SCALING, MSK_SCALING_NONE);
   MSK_putintparam(mtask, MSK_IPAR_NUM_THREADS, 1);
   MSK_putintparam(mtask, MSK_IPAR_INTPNT_BASIS, 0);
   //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_INFEAS, 1e-16);
@@ -770,16 +761,21 @@ int solveLP(Node* aNode) {
   MSK_putintparam(mtask, MSK_IPAR_BI_IGNORE_MAX_ITER, MSK_ON);
   //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
   //MSK_putdouparam(mtask, MSK_DPAR_CHECK_CONVEXITY_REL_TOL, 100000);
+  
+  // QP PARAMS!
+  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_TOL_DFEAS, 1e-16);
+  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_NL_TOL_DFEAS, 1e-16);
+  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_NL_TOL_PFEAS, 1e-16);
 
 
   int reattempted = 1;
- solutionpoint:
+  //solutionpoint:
 
   MSKrescodee trmcode;
   MSKrescodee r; 
   r = MSK_optimizetrm(mtask,&trmcode);
   printText(6,"Problem is solved with  MOSEK");
-  
+  r = r;
   MSK_solutionsummary(mtask,MSK_STREAM_LOG);
   
   MSKsolstae solsta;

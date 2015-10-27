@@ -531,6 +531,7 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
     delete[] VDPDV;
     delete[] newp;
     delete[] pDV;
+
     
     return 1;
   
