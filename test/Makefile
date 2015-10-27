@@ -28,7 +28,8 @@ SRCPORT = $(SRCDIR)/qdbb.cpp \
 	$(TESTDIR)/roundlot.cpp \
 	$(TESTDIR)/cardinality.cpp \
 	$(TESTDIR)/single.cpp \
-	$(TESTDIR)/diverse.cpp
+	$(TESTDIR)/diverse.cpp \
+	$(TESTDIR)/combined.cpp
 #test_main.cpp
 #$(SRCDIR)/portfolio.cpp
 
