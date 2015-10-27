@@ -26,10 +26,12 @@ int createRoundlot(MSKtask_t* task);
 int createCardinality(MSKtask_t* task);
 int createSingleCardinality(MSKtask_t* task);
 int createDiverse(MSKtask_t* task);
+int createCombined(MSKtask_t* task);
 int deleteRoundlot();
 int deleteCardinality();
 int deleteSingleCardinality();
 int deleteDiverse();
+int deleteCombined();
 
 #endif
 
