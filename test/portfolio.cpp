@@ -31,6 +31,7 @@ int PROBLEMCODE = 1; // 1 for roundlot
                      // 2 for cardinality
                      // 3 for single
                      // 4 for diversification
+                     // 5 for combined
 
 extern int FILEOUTPUT;
 
@@ -60,6 +61,8 @@ int createProblem(MSKtask_t* task, int argc, char* argv[]) {
 	PROBLEMCODE = 3;
       else if(strcmp(argv[i+1],"diverse")==0)
 	PROBLEMCODE = 4;
+      else if(strcmp(argv[i+1],"combined")==0)
+	PROBLEMCODE = 5;
       else { printf("Unknown Problem Type\n"); exit(0); }
     }
 
@@ -112,6 +115,9 @@ int createProblem(MSKtask_t* task, int argc, char* argv[]) {
   else if(PROBLEMCODE==4) {
     createDiverse(task);
   }
+  else if(PROBLEMCODE==5) {
+    createCombined(task);
+  }
   return 1;
   
 }
@@ -128,6 +134,9 @@ int deleteProblem() {
   }
   else if(PROBLEMCODE==4) {
     deleteDiverse();
+  }
+  else if(PROBLEMCODE==5) {
+    deleteCombined();
   }
 
   for(int i=0; i<N_; i++) {
@@ -734,6 +743,10 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
     
     
     return 1;
+  }
+  else if(PROBLEMCODE == 5) {
+    // not implemented!!!!
+    // TODO combined it with PROBLEMCODE 2 and PROBLEMCODE 3 (Cardinality and Single)
   }
   
   
