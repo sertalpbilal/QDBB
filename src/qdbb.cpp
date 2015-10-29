@@ -33,6 +33,7 @@ int cutSelection_ = 1;
 int cutLimit_ = 100; // max number of cuts to add, default is 1
 int cutPerIteration_ = 3; // number of cuts to be added at each relaxation
 int iterationLimit_ = 1;
+int minCutDepth_ = 0;
 int nodesProcessed_ = 0;
 int totalNodes_ = 0;
 int totalCutsGenerated_ = 0;
@@ -160,6 +161,10 @@ int parseInfo(int argc, char* argv[]) {
       else if(strcmp(argv[i+1],"2")==0) // Special: all cuts
 	cutRule_ = 5;
     }
+    
+    if(strcmp(tmp, "-cd")==0) // Min depth for cut generation
+      minCutDepth_ = atoi(argv[i+1]);
+
 
   }
 
@@ -209,7 +214,7 @@ int startBB(int argc, char* argv[]) {
         printText(3, "Node (%d) has a higher objective than upper bound, pruning...", activeNode->ID);
         goto finaldecision;
       }
-      if(cutRule_>0 && activeNode->totalCuts < cutLimit_) { // B&C
+      if(cutRule_>0 && activeNode->totalCuts < cutLimit_ && activeNode->depth >= minCutDepth_) { // B&C
         int totalCut = 0;
         int iterN = 0;
         //double prevObjective = activeNode->nodeObj;

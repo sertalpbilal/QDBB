@@ -18,14 +18,15 @@ for efile in files:
 
 # Step 0.0: Arrays
 capital = [100000]
-ret = [0.06]
-cardinality = [3, 5]
-branch = ['mf', 'hc', 'bonami', 'hvar'] # hc and random is out
-cut = ['mf', 'hc', 'bonami', 'hvar'] # hc and random is out
-search = ['df0', 'df1', 'best'] # breadth is out
+ret = [0.05]
+cardinality = [5, 10]
+branch = ['mf'] # 'mf', 'hc', 'bonami', 'hvar', 'random'
+cut = ['mf', 'hc', 'bonami', 'hvar'] # 'mf', 'hc', 'bonami', 'hvar', 'random'
+search = ['df1'] # 'df0', 'df1', 'best', 'breadth'
 cutiter = [1, 6]
 cutperiter = [1]
-cutlim = [10]
+cutlim = [1, 2]
+mincutdepth = [0, 3]
 
 # Step 0.1: Open file
 cfile = open('condor.sub','w')
@@ -64,7 +65,7 @@ output     = ../test/portfolio-output/out.%04d.txt\
 
     # x = 1
     index += 1
-    cl = 100
+    cl = 20
     run_command =  \
 'arguments  = -type roundlot -d AA -a 20 -b %s -c %s -s %s -x 1 -l %d -i %d -p %d -C %d -r %f -f 0 -o 2\n\
 output     = ../test/portfolio-output/out.%04d.txt\
@@ -75,23 +76,24 @@ output     = ../test/portfolio-output/out.%04d.txt\
     prob_index = '%04d\tround\tb:%s\tc:%s\ts:%s\tl:%d\ti:%d\tp:%d\tC:%d\tr:%.4f\tx:1\n' %(index, br, cu, sea, cl, ci, cp, c, r)
     ifile.write(prob_index)
     
-    comb2 = [(ci,cp,cl) for ci in cutiter for cp in cutperiter for cl in cutlim]
-    for (ci,cp,cl) in comb2:
+    comb2 = [(ci,cp,cl,cd) for ci in cutiter for cp in cutperiter for cl in cutlim for cd in mincutdepth]
+    for (ci,cp,cl,cd) in comb2:
         # run command
         index += 1
         run_command =  \
-'arguments  = -type roundlot -d AA -a 20 -b %s -c %s -s %s -x 0 -l %d -i %d -p %d -C %d -r %f -f 0 -o 2\n\
+'arguments  = -type roundlot -d AA -a 20 -b %s -c %s -s %s -x 0 -l %d -i %d -p %d -cd %d -C %d -r %f -f 0 -o 2\n\
 output     = ../test/portfolio-output/out.%04d.txt\
 \nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(br, cu, sea, cl, ci, cp, c, r, index, index)
+\nqueue 1\n\n' %(br, cu, sea, cl, ci, cp, cd, c, r, index, index)
         # write to file
         cfile.write(run_command)
-        prob_index = '%04d\tround\tb:%s\tc:%s\ts:%s\tl:%d\ti:%d\tp:%d\tC:%d\tr:%.4f\n' %(index, br, cu, sea, cl, ci, cp, c, r)
+        prob_index = '%04d\tround\tb:%s\tc:%s\ts:%s\tl:%d\ti:%d\tp:%d\tC:%d\tr:%.4f\tcd:%d\n' %(index, br, cu, sea, cl, ci, cp, c, r, cd)
         ifile.write(prob_index)
 
 #  -----------  CARDINALITY -----------
 
 comb3 = [(r,br,cu,sea,k) for r in ret for br in branch for cu in cut for sea in search for k in cardinality]
+cl = 20
 for (r,br,cu,sea,k) in comb3:
     index = index+1
     ci = 0
@@ -128,18 +130,18 @@ output     = ../test/portfolio-output/out.%04d.txt\
     prob_index = '%04d\tcardi\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tx:2\n' %(index, br, cu, sea, ci, cp, k, r)
     ifile.write(prob_index)
     
-    comb2 = [(ci,cp) for ci in cutiter for cp in cutperiter]
-    for (ci,cp) in comb2:
+    comb2 = [(ci,cp,cd) for ci in cutiter for cp in cutperiter for cd in mincutdepth]
+    for (ci,cp,cd) in comb2:
         # run command
         index += 1
         run_command =  \
-            'arguments  = -type cardinality -d AA -a 20 -b %s -c %s -s %s -x 0 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
+            'arguments  = -type cardinality -d AA -a 20 -b %s -c %s -s %s -x 0 -l 100 -i %d -p %d -cd %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
 output     = ../test/portfolio-output/out.%04d.txt\
 \nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(br, cu, sea, ci, cp, r, k, index, index)
+\nqueue 1\n\n' %(br, cu, sea, ci, cp, cd, r, k, index, index)
         # write to file
         cfile.write(run_command)
-        prob_index = '%04d\tcardi\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\n' %(index, br, cu, sea, ci, cp, k, r)
+        prob_index = '%04d\tcardi\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tcd:%d\n' %(index, br, cu, sea, ci, cp, k, r, cd)
         ifile.write(prob_index)
 
 
@@ -181,6 +183,20 @@ output     = ../test/portfolio-output/out.%04d.txt\
     cfile.write(run_command)
     prob_index = '%04d\tsingle\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tx:2\n' %(index, br, cu, sea, ci, cp, k, r)
     ifile.write(prob_index)
+    
+    index += 1
+    ci = 0
+    cp = 0
+    run_command =  \
+    'arguments  = -type single -d AA -a 20 -b %s -c %s -s %s -x 0 -l 0 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct linear \n\
+    output     = ../test/portfolio-output/out.%04d.txt\
+\nlog      = ../test/portfolio-output/log/%04d.txt\
+\nqueue 1\n\n' %(br, cu, sea, ci, cp, r, k, index, index)
+    # write to file
+    cfile.write(run_command)
+    prob_index = '%04d\tsingle\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tlinear\n' %(index, br, cu, sea, ci, cp, k, r)
+    ifile.write(prob_index)
+    
     
     comb2 = [(ci,cp) for ci in cutiter for cp in cutperiter]
     for (ci,cp) in comb2:

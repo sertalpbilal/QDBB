@@ -12,6 +12,7 @@ extern int k;
 extern int N_;
 extern double Rt_;
 extern int k_;
+extern int cardinaltype_;
 extern int PROBLEMCODE;// = 3;
 extern string datafolder_;
 extern double integerTolerance_;
@@ -82,19 +83,30 @@ int createSingleCardinality(MSKtask_t* task)
   // RHS
   r = MSK_putconbound(*task, 0, MSK_BK_LO, Rt, MSK_INFINITY); 
   
-  // Row 1 to N: x/z relation ---> x_j^2 - z_j <= 0
-  int* temprow = new int[1];
-  int* tempcol = new int[1];
-  double* tempval = new double[1];
-  for(int j=0; j<N; j++) {
-    // r = MSK_putaij(*task, j+1, j+1, 1);
-    MSK_putaij(*task, j+1, N+j+1, -1); // z
-    temprow[0] = j+1;
-    tempcol[0] = j+1;
-    tempval[0] = 2;
-    MSK_putqconk(*task, j+1, 1, temprow, tempcol, tempval); // x^2
-    MSK_putconbound(*task, j+1, MSK_BK_UP, -MSK_INFINITY, 0); // <= 0 
-    
+  if(cardinaltype_ == 1) { //Quadratic bound
+    // Row 1 to N: x/z relation ---> x_j^2 - z_j <= 0
+    int* temprow = new int[1];
+    int* tempcol = new int[1];
+    double* tempval = new double[1];
+    for(int j=0; j<N; j++) {
+      // r = MSK_putaij(*task, j+1, j+1, 1);
+      MSK_putaij(*task, j+1, N+j+1, -1); // z
+      temprow[0] = j+1;
+      tempcol[0] = j+1;
+      tempval[0] = 2;
+      MSK_putqconk(*task, j+1, 1, temprow, tempcol, tempval); // x^2
+      MSK_putconbound(*task, j+1, MSK_BK_UP, -MSK_INFINITY, 0); // <= 0 
+    }
+    delete[] temprow;
+    delete[] tempcol;
+    delete[] tempval;
+  }
+  else { // Linear bound  -- cardinaltype_ == 0
+    for(int j=0; j<N; j++) {
+      r = MSK_putaij(*task, j+1, j+1, 1);
+      r = MSK_putaij(*task, j+1, N+j+1, -1);
+      r = MSK_putconbound(*task, j+1, MSK_BK_UP, -MSK_INFINITY, 0); 
+    }
   }
   
   // Row N+1: sum to 1
@@ -134,9 +146,8 @@ int createSingleCardinality(MSKtask_t* task)
   delete[] rowindex;
   delete[] colindex;
   delete[] valindex;
-  delete[] temprow;
-  delete[] tempcol;
-  delete[] tempval;
+  
+  
   
   if(FILEOUTPUT) {
     MSK_writedata(*task, "result/singleOriginal.mps");
