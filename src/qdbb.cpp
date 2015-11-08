@@ -295,7 +295,7 @@ int startBB(int argc, char* argv[]) {
       //cut(activeNode);
       //solveLP(activeNode);
     } else {
-      printText(3, "Node %d is already eliminated, Current LB: %f, Global UB: %f", activeNode->ID, activeNode->lowerBound, globalUpperBound_);
+      printText(3, "Node %d is already eliminated, Current LB: %e, Global UB: %e", activeNode->ID, activeNode->lowerBound, globalUpperBound_);
       continue;
     }
 
@@ -313,7 +313,7 @@ finaldecision:
 	double curGap = 0;
 	double lowBnd = 0;
 	getCurrentGap(&curGap, &lowBnd);
-        printText(1, "New bound   %5d   %10.3f     %6.4f%%     %10.3f", activeNode->ID, globalUpperBound_, curGap, lowBnd);
+        printText(1, "New bound   %5d   %10.3e     %6.4f%%     %10.3e", activeNode->ID, globalUpperBound_, curGap, lowBnd);
         bestNodeNumber_ = activeNode->ID;
         eliminateNodes();
 	if(FILEOUTPUT)
@@ -322,7 +322,7 @@ finaldecision:
     } else if(activeNode->feasible && !activeNode->intfeasible) {
       // branch
       if(activeNode->nodeObj <= globalUpperBound_) {
-        printText(3, "Upper bound: %f, current objective: %f, branching...",globalUpperBound_,activeNode->nodeObj);
+        printText(3, "Upper bound: %e, current objective: %e, branching...",globalUpperBound_,activeNode->nodeObj);
         branch(activeNode);
       }
     } else {
@@ -341,7 +341,7 @@ finaldecision:
   }
   
   
-  printText(1, "Best objective value: %f", globalUpperBound_);
+  printText(1, "Best objective value: %e", globalUpperBound_);
   printText(2, "Values: ");
   for(int i=0; i<N; i++) {
     if(bestSoln_[i] < integerTolerance_) {
@@ -366,7 +366,7 @@ finaldecision:
   printText(1, "Best objective improvement: %e", bestImprovement_);
   printText(1,"Optimal node: %d", bestNodeNumber_);
   printText(1,"Optimal node depth: %d", bestNode->depth);
-  printText(1,"Optimal value: %f", globalUpperBound_);
+  printText(1,"Optimal value: %e", globalUpperBound_);
   printText(1,"Done...");
   return status;
 }

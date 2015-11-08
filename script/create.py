@@ -17,10 +17,12 @@ for efile in files:
 # Step 0: Condor for AA problems
 
 # Step 0.0: Arrays
+dataset = 'RD1' # 'RD1' or 'AA'
 capital = [100000]
-ret = [0.05]
+ret = [0.06] 
+asize = 20 # not yet implemented
 cardinality = [5, 10]
-branch = ['mf'] # 'mf', 'hc', 'bonami', 'hvar', 'random'
+branch = ['mf', 'hc'] # 'mf', 'hc', 'bonami', 'hvar', 'random'
 cut = ['mf', 'hc', 'bonami', 'hvar'] # 'mf', 'hc', 'bonami', 'hvar', 'random'
 search = ['df1'] # 'df0', 'df1', 'best', 'breadth'
 cutiter = [1, 6]
@@ -54,10 +56,10 @@ for (c,r,br,cu,sea) in comb:
     cl = 0
     # run command
     run_command =  \
-'arguments  = -type roundlot -d AA -a 20 -b %s -c %s -s %s -x 0 -l %d -i %d -p %d -C %d -r %f -f 0 -o 2\n\
+'arguments  = -type roundlot -d %s -a %s -b %s -c %s -s %s -x 0 -l %d -i %d -p %d -C %d -r %f -f 0 -o 2\n\
 output     = ../test/portfolio-output/out.%04d.txt\
 \nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(br, cu, sea, cl, ci, cp, c, r, index, index)
+\nqueue 1\n\n' %(dataset, asize, br, cu, sea, cl, ci, cp, c, r, index, index)
     # write to file
     cfile.write(run_command)
     prob_index = '%04d\tround\tb:%s\tc:%s\ts:%s\tl:%d\ti:%d\tp:%d\tC:%d\tr:%.4f\tleader\n' %(index, br, cu, sea, cl, ci, cp, c, r)
@@ -67,10 +69,10 @@ output     = ../test/portfolio-output/out.%04d.txt\
     index += 1
     cl = 20
     run_command =  \
-'arguments  = -type roundlot -d AA -a 20 -b %s -c %s -s %s -x 1 -l %d -i %d -p %d -C %d -r %f -f 0 -o 2\n\
+'arguments  = -type roundlot -d %s -a %s -b %s -c %s -s %s -x 1 -l %d -i %d -p %d -C %d -r %f -f 0 -o 2\n\
 output     = ../test/portfolio-output/out.%04d.txt\
 \nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(br, cu, sea, cl, ci, cp, c, r, index, index)
+\nqueue 1\n\n' %(dataset, asize, br, cu, sea, cl, ci, cp, c, r, index, index)
     # write to file
     cfile.write(run_command)
     prob_index = '%04d\tround\tb:%s\tc:%s\ts:%s\tl:%d\ti:%d\tp:%d\tC:%d\tr:%.4f\tx:1\n' %(index, br, cu, sea, cl, ci, cp, c, r)
@@ -81,10 +83,10 @@ output     = ../test/portfolio-output/out.%04d.txt\
         # run command
         index += 1
         run_command =  \
-'arguments  = -type roundlot -d AA -a 20 -b %s -c %s -s %s -x 0 -l %d -i %d -p %d -cd %d -C %d -r %f -f 0 -o 2\n\
+'arguments  = -type roundlot -d %s -a %s -b %s -c %s -s %s -x 0 -l %d -i %d -p %d -cd %d -C %d -r %f -f 0 -o 2\n\
 output     = ../test/portfolio-output/out.%04d.txt\
 \nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(br, cu, sea, cl, ci, cp, cd, c, r, index, index)
+\nqueue 1\n\n' %(dataset, asize, br, cu, sea, cl, ci, cp, cd, c, r, index, index)
         # write to file
         cfile.write(run_command)
         prob_index = '%04d\tround\tb:%s\tc:%s\ts:%s\tl:%d\ti:%d\tp:%d\tC:%d\tr:%.4f\tcd:%d\n' %(index, br, cu, sea, cl, ci, cp, c, r, cd)
@@ -99,10 +101,10 @@ for (r,br,cu,sea,k) in comb3:
     ci = 0
     cp = 0
     run_command =  \
-    'arguments  = -type cardinality -d AA -a 20 -b %s -c %s -s %s -x 0 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
+    'arguments  = -type cardinality -d %s -a %s -b %s -c %s -s %s -x 0 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
 output     = ../test/portfolio-output/out.%04d.txt\
 \nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(br, cu, sea, ci, cp, r, k, index, index)
+\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, r, k, index, index)
     # write to file
     cfile.write(run_command)
     prob_index = '%04d\tcardi\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tleader\n' %(index, br, cu, sea, ci, cp, k, r)
@@ -110,10 +112,10 @@ output     = ../test/portfolio-output/out.%04d.txt\
     
     index += 1
     run_command =  \
-    'arguments  = -type cardinality -d AA -a 20 -b %s -c %s -s %s -x 1 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
+    'arguments  = -type cardinality -d %s -a %s -b %s -c %s -s %s -x 1 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
 output     = ../test/portfolio-output/out.%04d.txt\
 \nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(br, cu, sea, ci, cp, r, k, index,index)
+\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, r, k, index,index)
     # write to file
     cfile.write(run_command)
     prob_index = '%04d\tcardi\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tx:1\n' %(index, br, cu, sea, ci, cp, k, r)
@@ -121,10 +123,10 @@ output     = ../test/portfolio-output/out.%04d.txt\
     
     index += 1
     run_command =  \
-    'arguments  = -type cardinality -d AA -a 20 -b %s -c %s -s %s -x 2 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
+    'arguments  = -type cardinality -d %s -a %s -b %s -c %s -s %s -x 2 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
     output     = ../test/portfolio-output/out.%04d.txt\
 \nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(br, cu, sea, ci, cp, r, k, index, index)
+\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, r, k, index, index)
     # write to file
     cfile.write(run_command)
     prob_index = '%04d\tcardi\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tx:2\n' %(index, br, cu, sea, ci, cp, k, r)
@@ -135,10 +137,10 @@ output     = ../test/portfolio-output/out.%04d.txt\
         # run command
         index += 1
         run_command =  \
-            'arguments  = -type cardinality -d AA -a 20 -b %s -c %s -s %s -x 0 -l 100 -i %d -p %d -cd %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
+            'arguments  = -type cardinality -d %s -a %s -b %s -c %s -s %s -x 0 -l 100 -i %d -p %d -cd %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
 output     = ../test/portfolio-output/out.%04d.txt\
 \nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(br, cu, sea, ci, cp, cd, r, k, index, index)
+\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, cd, r, k, index, index)
         # write to file
         cfile.write(run_command)
         prob_index = '%04d\tcardi\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tcd:%d\n' %(index, br, cu, sea, ci, cp, k, r, cd)
@@ -153,10 +155,10 @@ for (r,br,cu,sea,k) in comb3:
     ci = 0
     cp = 0
     run_command =  \
-    'arguments  = -type single -d AA -a 20 -b %s -c %s -s %s -x 0 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
+    'arguments  = -type single -d %s -a %s -b %s -c %s -s %s -x 0 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
 output     = ../test/portfolio-output/out.%04d.txt\
 \nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(br, cu, sea, ci, cp, r, k, index, index)
+\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, r, k, index, index)
     # write to file
     cfile.write(run_command)
     prob_index = '%04d\tsingle\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tleader\n' %(index, br, cu, sea, ci, cp, k, r)
@@ -164,10 +166,10 @@ output     = ../test/portfolio-output/out.%04d.txt\
     
     index += 1
     run_command =  \
-    'arguments  = -type single -d AA -a 20 -b %s -c %s -s %s -x 1 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
+    'arguments  = -type single -d %s -a %s -b %s -c %s -s %s -x 1 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
 output     = ../test/portfolio-output/out.%04d.txt\
 \nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(br, cu, sea, ci, cp, r, k, index,index)
+\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, r, k, index,index)
     # write to file
     cfile.write(run_command)
     prob_index = '%04d\tsingle\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tx:1\n' %(index, br, cu, sea, ci, cp, k, r)
@@ -175,10 +177,10 @@ output     = ../test/portfolio-output/out.%04d.txt\
     
     index += 1
     run_command =  \
-    'arguments  = -type single -d AA -a 20 -b %s -c %s -s %s -x 2 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
+    'arguments  = -type single -d %s -a %s -b %s -c %s -s %s -x 2 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
     output     = ../test/portfolio-output/out.%04d.txt\
 \nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(br, cu, sea, ci, cp, r, k, index, index)
+\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, r, k, index, index)
     # write to file
     cfile.write(run_command)
     prob_index = '%04d\tsingle\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tx:2\n' %(index, br, cu, sea, ci, cp, k, r)
@@ -188,10 +190,10 @@ output     = ../test/portfolio-output/out.%04d.txt\
     ci = 0
     cp = 0
     run_command =  \
-    'arguments  = -type single -d AA -a 20 -b %s -c %s -s %s -x 0 -l 0 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct linear \n\
+    'arguments  = -type single -d %s -a %s, -b %s -c %s -s %s -x 0 -l 0 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct linear \n\
     output     = ../test/portfolio-output/out.%04d.txt\
 \nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(br, cu, sea, ci, cp, r, k, index, index)
+\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, r, k, index, index)
     # write to file
     cfile.write(run_command)
     prob_index = '%04d\tsingle\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tlinear\n' %(index, br, cu, sea, ci, cp, k, r)
@@ -203,10 +205,10 @@ output     = ../test/portfolio-output/out.%04d.txt\
         # run command
         index += 1
         run_command =  \
-            'arguments  = -type single -d AA -a 20 -b %s -c %s -s %s -x 0 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
+            'arguments  = -type single -d %s -a %s -b %s -c %s -s %s -x 0 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
 output     = ../test/portfolio-output/out.%04d.txt\
 \nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(br, cu, sea, ci, cp, r, k, index, index)
+\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, r, k, index, index)
         # write to file
         cfile.write(run_command)
         prob_index = '%04d\tsingle\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\n' %(index, br, cu, sea, ci, cp, k, r)
