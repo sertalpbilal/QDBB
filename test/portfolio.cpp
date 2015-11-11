@@ -444,7 +444,7 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
         tvalue = tvalue + 2*pDV[i]*mysolnxx[i];
       }
       //std::cout << "Value is : " << tvalue << ", rho is : " << -newro << std::endl;
-      if(tvalue+newro < 1e-2) { // TODO Make this a parameter
+      if(tvalue+newro < 0) { // TODO Make this a parameter
         response = 0;
         free(mysolnxx);
         
@@ -462,11 +462,11 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
         delete[] VDPDV;
         delete[] newp;
         delete[] pDV;
-        printText(7,"Cut is NOT deep: %f",tvalue+newro);
+        printText(7,"Cut is NOT deep: %e",tvalue+newro);
         return 0;
       }
       else {
-	printText(7,"Cut is deep: %f", tvalue+newro);
+	printText(7,"Cut is deep: %e", tvalue+newro);
       }
       
       free(mysolnxx);

@@ -164,7 +164,9 @@ int parseInfo(int argc, char* argv[]) {
     
     if(strcmp(tmp, "-cd")==0) // Min depth for cut generation
       minCutDepth_ = atoi(argv[i+1]);
-
+    
+    if(strcmp(tmp, "-dct")==0) // Deep cut threshold
+      deepCutThreshold_ = atof(argv[i+1]);
 
   }
 
@@ -492,7 +494,7 @@ int cut(Node* activeNode) {
 
     double currsoln = activeNode->nodeSoln[variableForCut];
     if(PROBLEMCODE==1) { // TODO Remove this if condition in future - problem specific
-    if(fabs(currsoln-round(currsoln))<1e-1) {
+      if(fabs(currsoln-round(currsoln))<1e-6) { // TODO make this one a parameter
       printText(3,"Node (%d) variable %d is close to integer %.3f, cut is not generated",activeNode->ID,variableForCut,currsoln);
       return 0;
     } 
