@@ -46,6 +46,7 @@ Universe   = vanilla\n\
 getenv     = true\n\
 request_cpus = 1\n\
 transfer_executable = false \n\
+periodic_remove = (CommittedTime - CommittedSuspensionTime) > 60 \n\
 \n\n'
 cfile.write(common_command)
 prob_command = \
@@ -73,7 +74,7 @@ k:%d\t\
 r:%.4f\t\
 ct:%s\t\
 info:%s\n'
-ifile.write('Problem Definitions')
+ifile.write('Problem Definitions\n')
 
 allproblems = []
 comb = list(itertools.product(cutlim,cutiter,cutperiter,mincutdepth))
