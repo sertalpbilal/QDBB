@@ -367,16 +367,12 @@ finaldecision:
   printText(1, "Number of nodes generated: %d", totalNodes_);
   printText(1, "Total SOCO solved: %d", totalSocoSolved_);
   printText(1, "Total time elapsed: %f seconds",  elapsed );
-  if(cutRule_ > 0) {
-    printText(1, "Total cuts generated: %d", totalCutsGenerated_);
-    printText(1, "Total cuts applied: %d", totalCutsApplied_);
-  }
+  printText(1, "Total cuts generated: %d", totalCutsGenerated_);
+  printText(1, "Total cuts applied: %d", totalCutsApplied_);
   if(cutRule_==2)
     printText(1, "Average effective cuts: %f", (double) totalFadingCuts_ / totalNodeFadingCuts_);
-  if(cutRule_ > 0) {
-    printText(1, "Total objective improvement: %e", totalImprovement_);
-    printText(1, "Best objective improvement: %e", bestImprovement_);
-  }  
+  printText(1, "Total objective improvement: %e", totalImprovement_);
+  printText(1, "Best objective improvement: %e", bestImprovement_);  
   printText(1,"Optimal node: %d", bestNodeNumber_);
   printText(1,"Optimal node depth: %d", bestNode->depth);
   printText(1,"Optimal value: %e", globalUpperBound_);
