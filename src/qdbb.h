@@ -66,7 +66,7 @@ int branch(Node* activeNode);
 int cut(Node* activeNode);
 int eliminateNodes();
 int nextCut(int N, int heuType, double* soln, std::vector< std::vector<int> > *usedCuts);
-int getCurrentGap(double* curGap, double* lowerBound);
+int getCurrentGap(double* curGap, double* lowerBound, int* lowerNode);
 int addNewCut(MSKtask_t env, int asset, double value, int option);
 int finishBB();
 int deleteNode(Node* aNode);

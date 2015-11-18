@@ -25,6 +25,7 @@ double C_;
 int k_;
 int cardinaltype_;
 extern double integerTolerance_;
+extern double deepCutThreshold_;
 
 // This value is overwritten inside createProblem
 int PROBLEMCODE = 1; // 1 for roundlot
@@ -444,7 +445,7 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
         tvalue = tvalue + 2*pDV[i]*mysolnxx[i];
       }
       //std::cout << "Value is : " << tvalue << ", rho is : " << -newro << std::endl;
-      if(tvalue+newro < 0) { // TODO Make this a parameter
+      if(tvalue+newro < deepCutThreshold_) { // TODO Make this a parameter
         response = 0;
         free(mysolnxx);
         

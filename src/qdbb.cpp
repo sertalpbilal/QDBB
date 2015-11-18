@@ -183,8 +183,8 @@ int startBB(int argc, char* argv[]) {
   createNewNode(0, &root, -1 /*var id*/, 0 /* bound */, 0 /* lower */);
   
   if(OUTLEV==1) {
-    printText(1, "Update      Node    Best Obj.    Current Gap   Lowest LB");
-    printText(1, "---------   -----   ----------   -----------   ----------");
+    printText(1, "Update      Node    Best Obj.    Current Gap   Lowest LB  Node  ");
+    printText(1, "---------   -----   ----------   -----------   ---------- ------");
   }      
 
   clock_t begin = clock();
@@ -314,8 +314,14 @@ finaldecision:
 	bestNode = activeNode;
 	double curGap = 0;
 	double lowBnd = 0;
-	getCurrentGap(&curGap, &lowBnd);
-        printText(1, "New bound   %5d   %10.3e     %6.4f%%     %10.3e", activeNode->ID, globalUpperBound_, curGap, lowBnd);
+	int lowNode = 0;
+	getCurrentGap(&curGap, &lowBnd, &lowNode);
+	if(lowBnd > globalUpperBound_) {
+	  curGap = 0;
+	  lowBnd = globalUpperBound_;
+	  lowNode = activeNode->ID;
+	}
+        printText(1, "New bound   %5d   %10.3e     %5.2f %%     %10.3e (%d)", activeNode->ID, globalUpperBound_, curGap, lowBnd, lowNode);
         bestNodeNumber_ = activeNode->ID;
         eliminateNodes();
 	if(FILEOUTPUT)
@@ -713,7 +719,7 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
   return status;
 }
 
-int getCurrentGap(double* curGap, double* lowerBound) {
+int getCurrentGap(double* curGap, double* lowerBound, int* lowerNode) {
   // Loop thru node list
   // if not eliminated, not processed and has not a child
   // if lower bound is less than current lb, update it
@@ -721,9 +727,11 @@ int getCurrentGap(double* curGap, double* lowerBound) {
   int found = 0;
   double lb = std::numeric_limits<double>::infinity();
   for(unsigned int i=0; i < nodeList_.size(); i++) {
+    //printText(1,"%d\t%e",nodeList_[i]->ID, nodeList_[i]->lowerBound);
     if(!nodeList_[i]->eliminated && !nodeList_[i]->processed) {
       if(nodeList_[i]->lowerBound < lb) {
 	lb = nodeList_[i]->lowerBound;
+	*lowerNode = nodeList_[i]->ID;
 	found = 1;
       }
     }
@@ -736,6 +744,7 @@ int getCurrentGap(double* curGap, double* lowerBound) {
   else {
     *lowerBound = globalUpperBound_;
     *curGap = 0;
+    *lowerNode = 0;
   }
 
   return 1;
