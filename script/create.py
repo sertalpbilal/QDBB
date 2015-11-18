@@ -3,6 +3,7 @@
 # create condor submission file (condor.sub) for all data
 
 import os
+import itertools
 
 # Step -1: Remove all files in test portfolio-output folder
 
@@ -17,18 +18,22 @@ for efile in files:
 # Step 0: Condor for AA problems
 
 # Step 0.0: Arrays
-dataset = 'RD1' # 'RD1' or 'AA'
+# problems = ['roundlot', 'cardinality', 'single']
+dataset = ['RD0', 'RD1', 'RD2', 'RD3', 'RD4', 'RD5', 'RD6', 'RD7', 'RD8', 'RD9'] # 'RD0' to 'RD9' and 'AA'
 capital = [100000]
 ret = [0.06] 
-asize = 20 # not yet implemented
+problemsize = [10, 20, 50, 100, 200] # not yet implemented
 cardinality = [5, 10]
 branch = ['mf', 'hc'] # 'mf', 'hc', 'bonami', 'hvar', 'random'
 cut = ['mf', 'hc', 'bonami', 'hvar'] # 'mf', 'hc', 'bonami', 'hvar', 'random'
 search = ['df1'] # 'df0', 'df1', 'best', 'breadth'
-cutiter = [1, 6]
+cutiter = [1, 3]
 cutperiter = [1]
-cutlim = [1, 2]
+cutlim = [1, 5, 10, 200]
 mincutdepth = [0, 3]
+xtypes = [0, 1, 2]
+verbosity = 1
+f_ = 0
 
 # Step 0.1: Open file
 cfile = open('condor.sub','w')
@@ -43,182 +48,115 @@ request_cpus = 1\n\
 transfer_executable = false \n\
 \n\n'
 cfile.write(common_command)
+prob_command = \
+'arguments  = -type %s -d %s -a %s -b %s -c %s -s %s -x %d -l %d -i %d -p %d -cd %d -C %d -k %d -r %f -ct %s -f 0 -o 2\n\
+ output     = ../test/portfolio-output/out.%04d.txt\n\
+ log      = ../test/portfolio-output/log/%04d.txt\n\
+ queue 1\n\n'
 
-# Step 0.3: Loop over arrays
+# Order: ID, type, dataset, size, branch, cut, search, limit, stratX, iter, cutper, min depth, capital or cardinality, return, quad-linear, leader
+log_command = \
+'%04d\t\
+type:%s\t\
+data:%s\t\
+n:%d\t\
+b:%s\t\
+c:%s\t\
+s:%s\t\
+l:%d\t\
+x:%d\t\
+i:%d\t\
+p:%d\t\
+cd:%d\t\
+C:%d\t\
+k:%d\t\
+r:%.4f\t\
+ct:%s\t\
+info:%s\n'
+ifile.write('Problem Definitions')
 
-comb = [(c,r,br,cu,sea) for c in capital for r in ret for br in branch for cu in cut for sea in search]
-index = 0
+allproblems = []
+comb = list(itertools.product(cutlim,cutiter,cutperiter,mincutdepth))
+index = 0;
 
-for (c,r,br,cu,sea) in comb:
-    index = index + 1
-    ci = 0
-    cp = 0
-    cl = 0
-    # run command
-    run_command =  \
-'arguments  = -type roundlot -d %s -a %s -b %s -c %s -s %s -x 0 -l %d -i %d -p %d -C %d -r %f -f 0 -o 2\n\
-output     = ../test/portfolio-output/out.%04d.txt\
-\nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(dataset, asize, br, cu, sea, cl, ci, cp, c, r, index, index)
-    # write to file
+# Problem 1 - Roundlot
+pname = 'roundlot'
+for (ds,ps,br,cu,sea,c,r) in list(itertools.product(dataset,problemsize,branch,cut,search,capital,ret)):
+    x = cl = ci = cp = cd = k = 0
+    index, ct, pinfo = index+1, 'null', 'leader'
+    temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity,pinfo)
+    allproblems.append(temp)
+    for cl in cutlim:
+        index, x, pinfo = index+1, 2, ''
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity, pinfo)
+        allproblems.append(temp)
+    x = 1
+    for (cl,ci,cp,cd) in comb:
+        index = index+1
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity, pinfo)
+        allproblems.append(temp)
+
+# Problem 2 - Cardinality
+pname = 'cardinality'
+for (ds,ps,br,cu,sea,k,r) in list(itertools.product(dataset,problemsize,branch,cut,search,cardinality,ret)):
+    x = cl = ci = cp = cd = k = 0
+    index, ct, pinfo = index+1, 'quadratic', 'leader'
+    temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity,pinfo)
+    allproblems.append(temp)
+    index, ct, pinfo = index+1, 'linear', ''
+    temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity,pinfo)
+    allproblems.append(temp)
+    for cl in cutlim:
+        index, ct, x, pinfo = index+1, 'quadratic', 2, ''
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity, pinfo)
+        allproblems.append(temp)
+    for cl in cutlim:
+        index, x, pinfo = index+1, 3, ''
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity, pinfo)
+        allproblems.append(temp)
+    x = 1
+    for (cl,ci,cp,cd) in comb:
+        index = index+1
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity, pinfo)
+        allproblems.append(temp)
+
+# Problem 3 - Single Bound
+pname = 'single'
+for (ds,ps,br,cu,sea,k,r) in list(itertools.product(dataset,problemsize,branch,cut,search,cardinality,ret)):
+    x = cl = ci = cp = cd = k = 0
+    index, ct, pinfo = index+1, 'quadratic', 'leader'
+    temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity,pinfo)
+    allproblems.append(temp)
+    index, ct, pinfo = index+1, 'linear', ''
+    temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity,pinfo)
+    allproblems.append(temp)
+    for cl in cutlim:
+        index, ct, x, pinfo = index+1, 'quadratic', 2, ''
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity, pinfo)
+        allproblems.append(temp)
+    for cl in cutlim:
+        index, x, pinfo = index+1, 3, ''
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity, pinfo)
+        allproblems.append(temp)
+    x = 1
+    for (cl,ci,cp,cd) in comb:
+        index = index+1
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity, pinfo)
+        allproblems.append(temp)
+
+# Problem 4 - Combined
+
+
+
+for p in allproblems:
+    run_command = prob_command %(p[1],p[2],p[3],p[4],p[5],p[6],p[7],p[8],p[9],p[10],p[11],p[12],p[13],p[14],p[15],p[0],p[0] )
     cfile.write(run_command)
-    prob_index = '%04d\tround\tb:%s\tc:%s\ts:%s\tl:%d\ti:%d\tp:%d\tC:%d\tr:%.4f\tleader\n' %(index, br, cu, sea, cl, ci, cp, c, r)
+    pinfo = 'leader'
+    prob_index = log_command %(p[0],p[1],p[2],p[3],p[4],p[5],p[6],p[7],p[8],p[9],p[10],p[11],p[12],p[13],p[14],p[15],p[18])
     ifile.write(prob_index)
-
-    # x = 1
-    index += 1
-    cl = 20
-    run_command =  \
-'arguments  = -type roundlot -d %s -a %s -b %s -c %s -s %s -x 1 -l %d -i %d -p %d -C %d -r %f -f 0 -o 2\n\
-output     = ../test/portfolio-output/out.%04d.txt\
-\nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(dataset, asize, br, cu, sea, cl, ci, cp, c, r, index, index)
-    # write to file
-    cfile.write(run_command)
-    prob_index = '%04d\tround\tb:%s\tc:%s\ts:%s\tl:%d\ti:%d\tp:%d\tC:%d\tr:%.4f\tx:1\n' %(index, br, cu, sea, cl, ci, cp, c, r)
-    ifile.write(prob_index)
-    
-    comb2 = [(ci,cp,cl,cd) for ci in cutiter for cp in cutperiter for cl in cutlim for cd in mincutdepth]
-    for (ci,cp,cl,cd) in comb2:
-        # run command
-        index += 1
-        run_command =  \
-'arguments  = -type roundlot -d %s -a %s -b %s -c %s -s %s -x 0 -l %d -i %d -p %d -cd %d -C %d -r %f -f 0 -o 2\n\
-output     = ../test/portfolio-output/out.%04d.txt\
-\nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(dataset, asize, br, cu, sea, cl, ci, cp, cd, c, r, index, index)
-        # write to file
-        cfile.write(run_command)
-        prob_index = '%04d\tround\tb:%s\tc:%s\ts:%s\tl:%d\ti:%d\tp:%d\tC:%d\tr:%.4f\tcd:%d\n' %(index, br, cu, sea, cl, ci, cp, c, r, cd)
-        ifile.write(prob_index)
-
-#  -----------  CARDINALITY -----------
-
-comb3 = [(r,br,cu,sea,k) for r in ret for br in branch for cu in cut for sea in search for k in cardinality]
-cl = 20
-for (r,br,cu,sea,k) in comb3:
-    index = index+1
-    ci = 0
-    cp = 0
-    run_command =  \
-    'arguments  = -type cardinality -d %s -a %s -b %s -c %s -s %s -x 0 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
-output     = ../test/portfolio-output/out.%04d.txt\
-\nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, r, k, index, index)
-    # write to file
-    cfile.write(run_command)
-    prob_index = '%04d\tcardi\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tleader\n' %(index, br, cu, sea, ci, cp, k, r)
-    ifile.write(prob_index)
-    
-    index += 1
-    run_command =  \
-    'arguments  = -type cardinality -d %s -a %s -b %s -c %s -s %s -x 1 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
-output     = ../test/portfolio-output/out.%04d.txt\
-\nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, r, k, index,index)
-    # write to file
-    cfile.write(run_command)
-    prob_index = '%04d\tcardi\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tx:1\n' %(index, br, cu, sea, ci, cp, k, r)
-    ifile.write(prob_index)
-    
-    index += 1
-    run_command =  \
-    'arguments  = -type cardinality -d %s -a %s -b %s -c %s -s %s -x 2 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
-    output     = ../test/portfolio-output/out.%04d.txt\
-\nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, r, k, index, index)
-    # write to file
-    cfile.write(run_command)
-    prob_index = '%04d\tcardi\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tx:2\n' %(index, br, cu, sea, ci, cp, k, r)
-    ifile.write(prob_index)
-    
-    comb2 = [(ci,cp,cd) for ci in cutiter for cp in cutperiter for cd in mincutdepth]
-    for (ci,cp,cd) in comb2:
-        # run command
-        index += 1
-        run_command =  \
-            'arguments  = -type cardinality -d %s -a %s -b %s -c %s -s %s -x 0 -l 100 -i %d -p %d -cd %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
-output     = ../test/portfolio-output/out.%04d.txt\
-\nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, cd, r, k, index, index)
-        # write to file
-        cfile.write(run_command)
-        prob_index = '%04d\tcardi\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tcd:%d\n' %(index, br, cu, sea, ci, cp, k, r, cd)
-        ifile.write(prob_index)
+            
 
 
-#  -----------  SINGLE CARDINALITY -----------
+quit()
 
-#comb3 = [(r,br,cu,sea,k) for r in ret for br in branch for cu in cut for sea in search for k in cardinality]
-for (r,br,cu,sea,k) in comb3:
-    index = index+1
-    ci = 0
-    cp = 0
-    run_command =  \
-    'arguments  = -type single -d %s -a %s -b %s -c %s -s %s -x 0 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
-output     = ../test/portfolio-output/out.%04d.txt\
-\nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, r, k, index, index)
-    # write to file
-    cfile.write(run_command)
-    prob_index = '%04d\tsingle\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tleader\n' %(index, br, cu, sea, ci, cp, k, r)
-    ifile.write(prob_index)
-    
-    index += 1
-    run_command =  \
-    'arguments  = -type single -d %s -a %s -b %s -c %s -s %s -x 1 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
-output     = ../test/portfolio-output/out.%04d.txt\
-\nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, r, k, index,index)
-    # write to file
-    cfile.write(run_command)
-    prob_index = '%04d\tsingle\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tx:1\n' %(index, br, cu, sea, ci, cp, k, r)
-    ifile.write(prob_index)
-    
-    index += 1
-    run_command =  \
-    'arguments  = -type single -d %s -a %s -b %s -c %s -s %s -x 2 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
-    output     = ../test/portfolio-output/out.%04d.txt\
-\nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, r, k, index, index)
-    # write to file
-    cfile.write(run_command)
-    prob_index = '%04d\tsingle\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tx:2\n' %(index, br, cu, sea, ci, cp, k, r)
-    ifile.write(prob_index)
-    
-    index += 1
-    ci = 0
-    cp = 0
-    run_command =  \
-    'arguments  = -type single -d %s -a %s, -b %s -c %s -s %s -x 0 -l 0 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct linear \n\
-    output     = ../test/portfolio-output/out.%04d.txt\
-\nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, r, k, index, index)
-    # write to file
-    cfile.write(run_command)
-    prob_index = '%04d\tsingle\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\tlinear\n' %(index, br, cu, sea, ci, cp, k, r)
-    ifile.write(prob_index)
-    
-    
-    comb2 = [(ci,cp) for ci in cutiter for cp in cutperiter]
-    for (ci,cp) in comb2:
-        # run command
-        index += 1
-        run_command =  \
-            'arguments  = -type single -d %s -a %s -b %s -c %s -s %s -x 0 -l 100 -i %d -p %d -r %f -f 0 -o 2 -k %d -ct quadratic \n\
-output     = ../test/portfolio-output/out.%04d.txt\
-\nlog      = ../test/portfolio-output/log/%04d.txt\
-\nqueue 1\n\n' %(dataset, asize, br, cu, sea, ci, cp, r, k, index, index)
-        # write to file
-        cfile.write(run_command)
-        prob_index = '%04d\tsingle\tb:%s\tc:%s\ts:%s\tl:100\ti:%d\tp:%d\tk:%d\tr:%.4f\n' %(index, br, cu, sea, ci, cp, k, r)
-        ifile.write(prob_index)
-
-
-
-
-
-
-# error      = ./error.txt\n\
-# log        = ./log.txt\n\
 

@@ -154,11 +154,13 @@ int parseInfo(int argc, char* argv[]) {
       cutPerIteration_ = atoi(argv[i+1]);
 
     if(strcmp(tmp, "-x")==0) { // Termination
-      if(strcmp(argv[i+1],"0")==0) // Always cut
+      if(strcmp(argv[i+1],"0")==0) // No Cut
+	cutRule_ = 0;
+      if(strcmp(argv[i+1],"1")==1) // Always cuts!
 	cutRule_ = 1;
-      else if(strcmp(argv[i+1],"1")==0) // Fading cuts
+      else if(strcmp(argv[i+1],"2")==0) // Fading cuts
 	cutRule_ = 2;
-      else if(strcmp(argv[i+1],"2")==0) // Special: all cuts
+      else if(strcmp(argv[i+1],"3")==0) // Special: all cuts
 	cutRule_ = 5;
     }
     
@@ -365,13 +367,16 @@ finaldecision:
   printText(1, "Number of nodes generated: %d", totalNodes_);
   printText(1, "Total SOCO solved: %d", totalSocoSolved_);
   printText(1, "Total time elapsed: %f seconds",  elapsed );
-  printText(1, "Total cuts generated: %d", totalCutsGenerated_);
-  printText(1, "Total cuts applied: %d", totalCutsApplied_);
-  if(cutRule_==2) {
-    printText(1, "Average effective cuts: %f", (double) totalFadingCuts_ / totalNodeFadingCuts_);
+  if(cutRule_ > 0) {
+    printText(1, "Total cuts generated: %d", totalCutsGenerated_);
+    printText(1, "Total cuts applied: %d", totalCutsApplied_);
   }
-  printText(1, "Total objective improvement: %e", totalImprovement_);
-  printText(1, "Best objective improvement: %e", bestImprovement_);
+  if(cutRule_==2)
+    printText(1, "Average effective cuts: %f", (double) totalFadingCuts_ / totalNodeFadingCuts_);
+  if(cutRule_ > 0) {
+    printText(1, "Total objective improvement: %e", totalImprovement_);
+    printText(1, "Best objective improvement: %e", bestImprovement_);
+  }  
   printText(1,"Optimal node: %d", bestNodeNumber_);
   printText(1,"Optimal node depth: %d", bestNode->depth);
   printText(1,"Optimal value: %e", globalUpperBound_);
