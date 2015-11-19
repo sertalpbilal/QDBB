@@ -226,6 +226,7 @@ int startBB(int argc, char* argv[]) {
         int iterN = 0;
         //double prevObjective = activeNode->nodeObj;
         double firstObjective = activeNode->nodeObj; // Objective at relaxation
+	int firstNCut = totalCutsApplied_;
         if(cutRule_==1) {
           while(iterN < iterationLimit_) {
             printText(4, "Node (%d) cut iteration %d of %d", activeNode->ID, iterN+1, iterationLimit_);
@@ -239,7 +240,18 @@ int startBB(int argc, char* argv[]) {
               totalCut++;
             }
             solveLP(activeNode);
-            totalSocoSolved_++;
+	    // IMPROVEMENT
+	    if(totalCutsApplied_ > firstNCut) {
+	      long double objImprovement = activeNode->nodeObj -  firstObjective;
+	      if(objImprovement  > bestImprovement_) {
+		bestImprovement_ = objImprovement;
+	      }
+	      totalImprovement_ += objImprovement;
+	      firstObjective = activeNode->nodeObj;
+	      firstNCut = totalCutsApplied_;
+	    }
+	    // ENDOFIMPROVEMENT
+	    totalSocoSolved_++;
             iterN++;
           }
         }
@@ -262,7 +274,18 @@ int startBB(int argc, char* argv[]) {
             }
             solveLP(activeNode);
             totalSocoSolved_++;
-            if(!activeNode->feasible) { break; }
+	    // IMPROVEMENT
+	    if(totalCutsApplied_ > firstNCut) {
+	      long double objImprovement = activeNode->nodeObj -  firstObjective;
+	      if(objImprovement  > bestImprovement_) {
+		bestImprovement_ = objImprovement;
+	      }
+	      totalImprovement_ += objImprovement;
+	      firstObjective = activeNode->nodeObj;
+	      firstNCut = totalCutsApplied_;
+	    }
+	    // ENDOFIMPROVEMENT
+	    if(!activeNode->feasible) { break; }
             prevObjective = newObjective;
             newObjective = activeNode -> nodeObj;
 	    fadingIter++;
@@ -279,7 +302,18 @@ int startBB(int argc, char* argv[]) {
               totalCutsApplied_ += isNewCut;
             }
             solveLP(activeNode);
-            totalSocoSolved_++;
+	    // IMPROVEMENT
+	    if(totalCutsApplied_ > firstNCut) {
+	      long double objImprovement = activeNode->nodeObj -  firstObjective;
+	      if(objImprovement  > bestImprovement_) {
+		bestImprovement_ = objImprovement;
+	      }
+	      totalImprovement_ += objImprovement;
+	      firstObjective = activeNode->nodeObj;
+	      firstNCut = totalCutsApplied_;
+	    }
+	    // ENDOFIMPROVEMENT
+	    totalSocoSolved_++;
             
           }
           
@@ -292,11 +326,7 @@ int startBB(int argc, char* argv[]) {
 	else {
           printText(3, "Undefined cutting rule. Please check readme.");
         }
-        double objImprovement = activeNode->nodeObj -  firstObjective;
-        if(objImprovement  > bestImprovement_) {
-          bestImprovement_ = objImprovement;
-        }
-        totalImprovement_ += objImprovement;
+        
       }
 
       //cut(activeNode);
