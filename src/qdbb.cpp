@@ -25,7 +25,7 @@ int cutPriority_ = 0; // 0: default, most fractional, 1: best-value
 int cutRule_ = 1; // 0: default, no cut, 1: always cut, 2: fading-cuts, 3: root-heuristic cut
 // 4: min depth for cut, 5: only if deep cut
 int searchRule_ = 0; // 0: default, depth first, left, 1: depth first right, 2: breadth first, 3: best (lower bound)
-double deepCutThreshold_ = 0; // deep-cut threshold value
+double deepCutThreshold_ = 0.05; // deep-cut threshold value (percentage)
 double bestImprovement_ = 0;
 double totalImprovement_ = 0;
 int controlValve = 50;
@@ -44,7 +44,9 @@ int totalFadingCuts_ = 0;
 int totalNodeFadingCuts_ = 0;
 int bestNodeNumber_ = 0;
 double objectiveTolerance_ = 1e-3;
-double integerTolerance_ = 1e-5;
+double integerTolerance_ = 1e-6;
+double timeLimit_ = 1000;
+int terminationReason_ = 0;
 int numVars_ = 0;
 int N = 0; /* number of assets, always 1 less than numVars */
 /* TODO Change N to number of variables! */
@@ -52,6 +54,8 @@ Node* root;
 Node* bestNode;
 std::vector< Node* > nodeList_;
 std::vector< Node* > allNodeList_; // Keeps pointer of all nodes for destructor
+std::vector<long double*> cutImprovements_;
+long double cdepth_;
 
 extern int PROBLEMCODE;
 extern double* mu;
@@ -173,6 +177,9 @@ int parseInfo(int argc, char* argv[]) {
     if(strcmp(tmp, "-dct")==0) // Deep cut threshold
       deepCutThreshold_ = atof(argv[i+1]);
 
+    if(strcmp(tmp, "-timelimit")==0 || strcmp(tmp, "-tl")==0) // Time limit
+      timeLimit_ = atof(argv[i+1]);
+    
   }
 
   printText(1,"Input= a: %d, branch: %d, cut: %d, iter: %d, cutper: %d, term: %d", N, branchingRule_, cutPriority_, iterationLimit_, cutPerIteration_, cutRule_);
@@ -202,6 +209,9 @@ int startBB(int argc, char* argv[]) {
     }
     
     Node* activeNode;
+    clock_t current = clock();
+    double elapsed = double(current-begin) / CLOCKS_PER_SEC;
+    if(elapsed > timeLimit_) { terminationReason_ = 2; goto summary_report; }
     selectNode(&activeNode);
     if(!activeNode->eliminated) {
       printText(4, "Processing the node now...");
@@ -241,10 +251,18 @@ int startBB(int argc, char* argv[]) {
             }
             solveLP(activeNode);
 	    // IMPROVEMENT
+	    long double objImprovement = activeNode->nodeObj -  firstObjective;
 	    if(totalCutsApplied_ > firstNCut) {
-	      long double objImprovement = activeNode->nodeObj -  firstObjective;
 	      if(objImprovement  > bestImprovement_) {
 		bestImprovement_ = objImprovement;
+	      }
+	      if(totalCutsApplied_ == firstNCut+1) { // Exactly 1 cut
+		long double* impr = (long double*) malloc(4*sizeof(long double));
+		impr[0] = cdepth_; // depth
+		impr[1] = activeNode->depth; // tree depth
+		impr[2] = objImprovement; // obj improvement
+		impr[3] = activeNode->nodeObj; // current objective
+		cutImprovements_.push_back(impr);
 	      }
 	      totalImprovement_ += objImprovement;
 	      firstObjective = activeNode->nodeObj;
@@ -373,14 +391,20 @@ finaldecision:
     }
     
   }
+
+summary_report:  
   clock_t end = clock();
   double elapsed = double(end-begin) / CLOCKS_PER_SEC;
 
+
   // Summary report
   printText(1, "========== SUMMARY ==========");
-  if(globalUpperBound_== std::numeric_limits<double>::infinity()) {
-    printText(1, "Problem is infeasible :(");
+  if(globalUpperBound_== std::numeric_limits<double>::infinity() && terminationReason_ == 0) {
+    printText(1, "Problem is infeasible.");
     return 0;
+  }
+  else if(terminationReason_ == 2) {
+    printText(1, "Time limit has been hit.");
   }
   
   
@@ -409,6 +433,14 @@ finaldecision:
   printText(1,"Optimal node: %d", bestNodeNumber_);
   printText(1,"Optimal node depth: %d", bestNode->depth);
   printText(1,"Optimal value: %e", globalUpperBound_);
+  double finalgap_;
+  double t1;
+  int t2;
+  getCurrentGap(&finalgap_, &t1, &t2);
+  printText(1,"Final gap: %5.2f %%", finalgap_);
+  for(unsigned int i=0; i<cutImprovements_.size(); i++) {
+    printText(3, "Cut[ %4d ], Depth: %8Le, Tree Depth: %.0Le, Improvement: %8Le, CurrentObj: %8Le",(i+1), cutImprovements_[i][0], cutImprovements_[i][1], cutImprovements_[i][2], cutImprovements_[i][3]);
+  }
   printText(1,"Done...");
   return status;
 }
@@ -529,7 +561,7 @@ int branch(Node* activeNode) {
 int cut(Node* activeNode) {
   int status = 0;
   
-  int variableForCut = nextCut(N, cutPriority_, activeNode->nodeSoln, &(activeNode->usedCuts)); 
+  int variableForCut = nextCut(N, cutPriority_, activeNode->nodeSoln, &(activeNode->usedCuts));
   if(variableForCut >= 0 ) {
 
     double currsoln = activeNode->nodeSoln[variableForCut];
@@ -542,7 +574,7 @@ int cut(Node* activeNode) {
 
 
 
-    status = addNewCut(activeNode->problem, variableForCut+1, activeNode->nodeSoln[variableForCut], cutSelection_);
+    status = addNewCut(activeNode->problem, activeNode->nodeSoln, activeNode->nodeObj, variableForCut+1, activeNode->nodeSoln[variableForCut], cutSelection_, &cdepth_);
     if(status>0) {
       printText(3, "Node (%d) New cut for variable %d is added, value: %f", activeNode->ID, variableForCut, activeNode->nodeSoln[variableForCut]);
     } else {
@@ -970,6 +1002,10 @@ int finishBB() {
   }
   
   deleteProblem();
+
+  for(unsigned int i=0; i < cutImprovements_.size(); i++) {
+    free(cutImprovements_[i]);
+  }
   
   return 1;
 }

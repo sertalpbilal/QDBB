@@ -54,16 +54,17 @@ for efile in sorted(files):
     if found:
         if "leader" in expfile[int(node_id)-1]:
             exp.append("leader")
-            lead_node = exp[2]
-            lead_time = exp[5]
+            #lead_node = exp[2]
+            #lead_time = exp[5]
             exp.append(" ")
         else:
-            node_imp = "% 8.2f %%" % ( (float(lead_node)-float(exp[2]))/max(1,float(lead_node)) * 100 )
-            exp.append(node_imp)
-            time_imp = "% 8.2f %%" % ( (float(lead_time)-float(exp[5]))/max(1,float(lead_time)) * 100 )
-            exp.append(time_imp)
-        time_per_soco = "%.6f" % (float(exp[5])/float(exp[4]))
-        exp.append(time_per_soco)
+            b=2
+            #node_imp = "% 8.2f %%" % ( (float(lead_node)-float(exp[2]))/max(1,float(lead_node)) * 100 )
+            #exp.append(node_imp)
+            #time_imp = "% 8.2f %%" % ( (float(lead_time)-float(exp[5]))/max(1,float(lead_time)) * 100 )
+            #exp.append(time_imp)
+        #time_per_soco = "%.6f" % (float(exp[5])/float(exp[4]))
+        #exp.append(time_per_soco)
     if( summary_format == 0 or (summary_format == 1 and found ==1 )):
             result.append(exp)
     ofile.close()

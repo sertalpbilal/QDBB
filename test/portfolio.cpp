@@ -23,7 +23,7 @@ int N_;
 double Rt_;
 double C_;
 int k_;
-int cardinaltype_;
+int cardinaltype_ = 1;
 extern double integerTolerance_;
 extern double deepCutThreshold_;
 
@@ -311,7 +311,7 @@ void initEigTransform(int N, double** Q_hat, double* pBar, double** DhalfVT, dou
 
 }
 
-int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* pBar,  double** DhalfVT,  double** VDhalfinv) {
+int addNewCut(MSKtask_t env, double* currSoln, double nodeObj, int asset, double value, int option, long double* cdepth) { //, double* pBar,  double** DhalfVT,  double** VDhalfinv) {
   
   //printf("Add new cut PROBLEMCODE: %d\n",PROBLEMCODE);
   
@@ -431,7 +431,7 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
     
 
     // Calculate if cut is deep
-    if(option==1) {
+    if(true) {
 
       double* mysolnxx = (double*) malloc((N+1)*sizeof(double));
       MSK_getsolutionslice(env, MSK_SOL_ITR, MSK_SOL_ITEM_XX, 0, N+1, mysolnxx);
@@ -444,8 +444,9 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
         }
         tvalue = tvalue + 2*pDV[i]*mysolnxx[i];
       }
+      *cdepth = tvalue+newro+0;
       //std::cout << "Value is : " << tvalue << ", rho is : " << -newro << std::endl;
-      if(tvalue+newro < deepCutThreshold_) { // TODO Make this a parameter
+      if((tvalue+newro)*100/nodeObj < deepCutThreshold_) { // TODO Make this a parameter
         response = 0;
         free(mysolnxx);
         
@@ -547,6 +548,8 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
   
   } 
   else if(PROBLEMCODE==2) { // CARDINALITY // TODO each of these functions should go to their own file!
+
+    int status  = 0;
     
     N = numVars_-1; //(N-1)/2; // total number of variables is 2N+1
     //printf("N: %d\n", N);
@@ -585,7 +588,7 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
     long double tau = ( sqrt(1-(1/kd))  - 1 ) * 2 * kd;
     //tau = 0;
     //printf("\ntau: %Lf, k: %d\n",tau, k);
-    
+    long double cutDepth = 0;
     int* zrowindex = new int[N];
     int* zcolindex = new int[N];
     double*  zvalindex = new double[N];
@@ -600,48 +603,50 @@ int addNewCut(MSKtask_t env, int asset, double value, int option) { //, double* 
       } else {
         zvalindex[zbusindex]=2;
       }
+      cutDepth += zvalindex[zbusindex]*currSoln[i-1]*currSoln[i-1];
       zbusindex++;
     }
+
+    // Linear to cutdepth
+    cutDepth = cutDepth / 2;
+    cutDepth -= currSoln[asset-1]*tau;
+    cutDepth -= kd;
+    /*std::cout << "Cut depth: " << cutDepth << std::endl;
+
+    for(int i=0; i<N; i++) {
+      std::cout << "Var[" << i << "]: " << currSoln[i] << std::endl;
+    }
+    for(int i=0; i<N; i++) {
+      std::cout << "i: " << i << ", q_i: " << zvalindex[i]/2 << std::endl;
+    }
+    std::cout << "a_N " << (-tau) << std::endl; */
+
+    if(cutDepth>0) {
+
+      *cdepth = cutDepth;
+      status = 1;
+      int cutidx;
+      MSK_getnumcon(env,&cutidx);
+      MSK_appendcons(env,1);
+      MSK_putqconk(env, cutidx, N, zrowindex, zcolindex, zvalindex);
+      MSK_putaij(env, cutidx, N+asset, - 0.5*tau);
+      MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, k); 
+      MSK_toconic(env);
+
+      char txbuffer[80];
+
+      if(FILEOUTPUT)
+	sprintf(txbuffer, "result/afterCut%d.mps", asset);
+      
+      if(FILEOUTPUT)
+	MSK_writedata(env, txbuffer);
+    }
     
-    int cutidx;
-    MSK_getnumcon(env,&cutidx);
-    MSK_appendcons(env,1);
-    
-    //printf("CutID: %d, asset: %d\n", cutidx, asset);
-
-    /*
-    OLD CONE CODES WERE HERE
-    */
-    
-    
-    MSK_putqconk(env, cutidx, N, zrowindex, zcolindex, zvalindex);
-    MSK_putaij(env, cutidx, N+asset, - 0.5*tau);
-    MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, k); 
-    
-    
-
-    
-
-    MSK_toconic(env);
-
-  char txbuffer[80];
-
-  if(FILEOUTPUT)
-    sprintf(txbuffer, "result/afterCut%d.mps", asset);
-
-
-  if(FILEOUTPUT)
-    MSK_writedata(env, txbuffer);
-
-  delete[] zrowindex;
+    delete[] zrowindex;
     delete[] zcolindex;
     delete[] zvalindex;
     
-
-    //delete[] csub;
-    
-    
-    return 1;
+    return status;
     
     
   }
@@ -854,7 +859,7 @@ int nextCut(int N, int heuType, double* soln, vector< vector<int> > *usedCuts) {
     bool feas = true;
     unsigned int j=0;
     for(j=0; j<(*usedCuts)[largestIndex].size(); ++j) {
-      if((*usedCuts).at(largestIndex).at(j)==floor(soln[largestIndex+1])) {
+      if((*usedCuts).at(largestIndex).at(j)==floor(soln[largestIndex+1]) || largest < integerTolerance_ ) {
         // Not feasible, skip it
         diff[largestIndex] = -1;
         feas=false;
