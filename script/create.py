@@ -19,19 +19,18 @@ for efile in files:
 
 # Step 0.0: Arrays
 # problems = ['roundlot', 'cardinality', 'single']
-dataset = ['RD0', 'RD1', 'RD2', 'RD3', 'RD4', 'RD5', 'RD6', 'RD7', 'RD8', 'RD9'] # 'RD0' to 'RD9' and 'AA'
+dataset = ['RD0'] #, 'RD1', 'RD2', 'RD3', 'RD4', 'RD5', 'RD6', 'RD7', 'RD8', 'RD9'] # 'RD0' to 'RD9' and 'AA'
 capital = [100000]
-ret = [0.06] 
-problemsize = [10, 20, 50, 100, 200] # not yet implemented
+ret = [0.07] 
+problemsize = [20] # not yet implemented
 cardinality = [5, 10]
 branch = ['mf', 'hc'] # 'mf', 'hc', 'bonami', 'hvar', 'random'
 cut = ['mf', 'hc', 'bonami', 'hvar'] # 'mf', 'hc', 'bonami', 'hvar', 'random'
 search = ['df1'] # 'df0', 'df1', 'best', 'breadth'
 cutiter = [1, 3]
 cutperiter = [1]
-cutlim = [1, 5, 10, 200]
+cutlim = [1, 200]
 mincutdepth = [0, 3]
-xtypes = [0, 1, 2]
 verbosity = 1
 f_ = 0
 
@@ -100,7 +99,7 @@ for (ds,ps,br,cu,sea,c,r) in list(itertools.product(dataset,problemsize,branch,c
 # Problem 2 - Cardinality
 pname = 'cardinality'
 for (ds,ps,br,cu,sea,k,r) in list(itertools.product(dataset,problemsize,branch,cut,search,cardinality,ret)):
-    x = cl = ci = cp = cd = k = 0
+    x = cl = ci = cp = cd  = 0
     index, ct, pinfo = index+1, 'quadratic', 'leader'
     temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity,pinfo)
     allproblems.append(temp)
@@ -124,7 +123,7 @@ for (ds,ps,br,cu,sea,k,r) in list(itertools.product(dataset,problemsize,branch,c
 # Problem 3 - Single Bound
 pname = 'single'
 for (ds,ps,br,cu,sea,k,r) in list(itertools.product(dataset,problemsize,branch,cut,search,cardinality,ret)):
-    x = cl = ci = cp = cd = k = 0
+    x = cl = ci = cp = cd  = 0
     index, ct, pinfo = index+1, 'quadratic', 'leader'
     temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity,pinfo)
     allproblems.append(temp)
