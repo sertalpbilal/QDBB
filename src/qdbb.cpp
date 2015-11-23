@@ -195,8 +195,8 @@ int startBB(int argc, char* argv[]) {
   createNewNode(0, &root, -1 /*var id*/, 0 /* bound */, 0 /* lower */);
   
   if(OUTLEV==1) {
-    printText(1, "Update      Node    Best Obj.    Current Gap   Lowest LB  Node  ");
-    printText(1, "---------   -----   ----------   -----------   ---------- ------");
+    printText(1, "Update      Node    Best Obj.    Current Gap   Lowest LB   Node   Cuts Appl / Gen");
+    printText(1, "---------   -----   ----------   -----------   ---------- ------  ---------------");
   }      
 
   clock_t begin = clock();
@@ -374,7 +374,7 @@ finaldecision:
 	  lowBnd = globalUpperBound_;
 	  lowNode = activeNode->ID;
 	}
-        printText(1, "New bound   %5d   %10.3e     %5.2f %%     %10.3e (%d)", activeNode->ID, globalUpperBound_, curGap, lowBnd, lowNode);
+        printText(1, "New bound   %5d   %10.3e     %5.2f %%     %10.3e  %4d   %4d  /  %4d ", activeNode->ID, globalUpperBound_, curGap, lowBnd, lowNode, totalCutsApplied_, totalCutsGenerated_);
         bestNodeNumber_ = activeNode->ID;
         eliminateNodes();
 	if(FILEOUTPUT)

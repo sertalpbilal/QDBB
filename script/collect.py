@@ -52,13 +52,12 @@ for efile in sorted(files):
             totalsolved += 1
             exp.append(efile)
     if found:
-        if "leader" in expfile[int(node_id)-1]:
+        if "leader" in expfile[int(node_id)]:
             exp.append("leader")
             lead_node = exp[2]
             lead_time = exp[5]
             exp.append(" ")
         else:
-            print ofile
             node_imp = "% 8.2f %%" % ( (float(lead_node)-float(exp[2]))/max(1,float(lead_node)) * 100 )
             exp.append(node_imp)
             time_imp = "% 8.2f %%" % ( (float(lead_time)-float(exp[5]))/max(1,float(lead_time)) * 100 )
