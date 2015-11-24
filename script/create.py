@@ -19,18 +19,18 @@ for efile in files:
 
 # Step 0.0: Arrays
 # problems = ['roundlot', 'cardinality', 'single']
-dataset = ['RD0'] #, 'RD1', 'RD2', 'RD3', 'RD4', 'RD5', 'RD6', 'RD7', 'RD8', 'RD9'] # 'RD0' to 'RD9' and 'AA'
-capital = [100000]
-ret = [0.07] 
+dataset = ['RD0', 'RD1'] #, 'RD1', 'RD2', 'RD3', 'RD4', 'RD5', 'RD6', 'RD7', 'RD8', 'RD9'] # 'RD0' to 'RD9' and 'AA'
+capital = [200000]
+ret = [0.04] 
 problemsize = [20] # not yet implemented
-cardinality = [5, 10]
-branch = ['mf', 'hc'] # 'mf', 'hc', 'bonami', 'hvar', 'random'
+cardinality = []
+branch = ['mf', 'hc', 'bonami', 'random'] # 'mf', 'hc', 'bonami', 'hvar', 'random'
 cut = ['mf', 'hc', 'bonami', 'hvar'] # 'mf', 'hc', 'bonami', 'hvar', 'random'
 search = ['df1'] # 'df0', 'df1', 'best', 'breadth'
-cutiter = [1, 3]
+cutiter = [1]
 cutperiter = [1]
-cutlim = [1, 200]
-mincutdepth = [0, 3]
+cutlim = [1]
+mincutdepth = [0]
 verbosity = 1
 f_ = 0
 
@@ -45,11 +45,10 @@ Universe   = vanilla\n\
 getenv     = true\n\
 request_cpus = 1\n\
 transfer_executable = false \n\
-periodic_remove = (CommittedTime - CommittedSuspensionTime) > 60 \n\
 \n\n'
 cfile.write(common_command)
 prob_command = \
-'arguments  = -type %s -d %s -a %s -b %s -c %s -s %s -x %d -l %d -i %d -p %d -cd %d -C %d -k %d -r %f -ct %s -f 0 -o 2\n\
+'arguments  = -type %s -d %s -a %s -b %s -c %s -s %s -x %d -l %d -i %d -p %d -mind %d -C %d -k %d -r %f -ct %s -f 0 -o 1 -dct 0 -maxd 1 \n\
  output     = ../test/portfolio-output/out.%04d.txt\n\
  log      = ../test/portfolio-output/log/%04d.txt\n\
  queue 1\n\n'
@@ -63,11 +62,11 @@ n:%d\t\
 b:%s\t\
 c:%s\t\
 s:%s\t\
-l:%d\t\
 x:%d\t\
+l:%d\t\
 i:%d\t\
 p:%d\t\
-cd:%d\t\
+mind:%d\t\
 C:%d\t\
 k:%d\t\
 r:%.4f\t\
@@ -86,6 +85,7 @@ for (ds,ps,br,cu,sea,c,r) in list(itertools.product(dataset,problemsize,branch,c
     index, ct, pinfo = index+1, 'null', 'leader'
     temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity,pinfo)
     allproblems.append(temp)
+    x = 2
     for cl in cutlim:
         index, x, pinfo = index+1, 2, ''
         temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity, pinfo)
@@ -95,6 +95,11 @@ for (ds,ps,br,cu,sea,c,r) in list(itertools.product(dataset,problemsize,branch,c
         index = index+1
         temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity, pinfo)
         allproblems.append(temp)
+    x = 4
+    index, ct, pinfo = index+1, 'null', 'depthorder'
+    cl, ci, cp = ps, 1, ps
+    temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,c,k,r,ct,f_,verbosity,pinfo)
+    allproblems.append(temp)
 
 # Problem 2 - Cardinality
 pname = 'cardinality'

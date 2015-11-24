@@ -311,7 +311,7 @@ void initEigTransform(int N, double** Q_hat, double* pBar, double** DhalfVT, dou
 
 }
 
-int addNewCut(MSKtask_t env, double* currSoln, double nodeObj, int asset, double value, int option, long double* cdepth) { //, double* pBar,  double** DhalfVT,  double** VDhalfinv) {
+int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, int asset, double value, int option, long double* cdepth, int addToProblem) { //, double* pBar,  double** DhalfVT,  double** VDhalfinv) {
   
   //printf("Add new cut PROBLEMCODE: %d\n",PROBLEMCODE);
   
@@ -474,15 +474,19 @@ int addNewCut(MSKtask_t env, double* currSoln, double nodeObj, int asset, double
       free(mysolnxx);
     }
 
+
+    if(addToProblem == 1) {
     
-    MSK_getnumcon(env,&cutidx); 
-    MSK_appendcons(env,1); 
+      MSK_getnumcon(env,&cutidx); 
+      MSK_appendcons(env,1); 
     
-    MSK_putconbound(env, 
-    cutidx, 
-    MSK_BK_UP, 
-    -MSK_INFINITY, 
-    -newro); 
+      MSK_putconbound(env, 
+		      cutidx, 
+		      MSK_BK_UP, 
+		      -MSK_INFINITY, 
+		      -newro); 
+
+    
     
     // Give Quadratic Constraints
     
@@ -490,44 +494,42 @@ int addNewCut(MSKtask_t env, double* currSoln, double nodeObj, int asset, double
     
     
     // Linear Part of QC
-    for(int j=0; j<N+1; j++) {
-      MSK_putaij(env, cutidx, j, 2*pDV[j]);
-    }
+      for(int j=0; j<N+1; j++) {
+	MSK_putaij(env, cutidx, j, 2*pDV[j]);
+      }
     
     // cout << "CP2" << endl;  
     
     
     
     // Q Part of QC
-    int* rowindex = new int[(N+1)*(N+2)/2];
-    int* colindex = new int[(N+1)*(N+2)/2];
-    double* valindex = new double[(N+1)*(N+2)/2];
-    int busindex = 0;
-    for(int i=0; i<N+1; i++) {
-      for(int j=0; j<i+1; j++) {
-        rowindex[busindex]=i;
-        colindex[busindex]=j;
-        valindex[busindex]=2*VDPDV[i][j];
-        //if(i==j) { // diagonal
-	//  valindex[busindex] += 2*0.000001; // TODO DEBUGGING Q NOT PSD ERROR
-	//}
-        busindex++;
+      int* rowindex = new int[(N+1)*(N+2)/2];
+      int* colindex = new int[(N+1)*(N+2)/2];
+      double* valindex = new double[(N+1)*(N+2)/2];
+      int busindex = 0;
+      for(int i=0; i<N+1; i++) {
+	for(int j=0; j<i+1; j++) {
+	  rowindex[busindex]=i;
+	  colindex[busindex]=j;
+	  valindex[busindex]=2*VDPDV[i][j];
+	  //if(i==j) { // diagonal
+	  //  valindex[busindex] += 2*0.000001; // TODO DEBUGGING Q NOT PSD ERROR
+	  //}
+	  busindex++;
+	}
+	
       }
+      // cout << "CP3" << endl;  
       
+      
+      MSK_putqconk(env, cutidx, (N+1)*(N+2)/2, rowindex, colindex, valindex);
+      
+      *cutIndex = cutidx;
+    
+      delete[] rowindex;
+      delete[] colindex;
+      delete[] valindex;
     }
-    // cout << "CP3" << endl;  
-    
-    
-    MSK_putqconk(env, cutidx, (N+1)*(N+2)/2, rowindex, colindex, valindex);
-    
-    
-    
-    
-    
-    delete[] rowindex;
-    delete[] colindex;
-    delete[] valindex;
-    
     delete[] matC;
     
     for(int i=0; i<N+1; ++i) {
@@ -611,6 +613,8 @@ int addNewCut(MSKtask_t env, double* currSoln, double nodeObj, int asset, double
     cutDepth = cutDepth / 2;
     cutDepth -= currSoln[asset-1]*tau;
     cutDepth -= kd;
+    
+    *cdepth = cutDepth;
     /*std::cout << "Cut depth: " << cutDepth << std::endl;
 
     for(int i=0; i<N; i++) {
@@ -621,9 +625,8 @@ int addNewCut(MSKtask_t env, double* currSoln, double nodeObj, int asset, double
     }
     std::cout << "a_N " << (-tau) << std::endl; */
 
-    if(cutDepth>0) {
+    if(cutDepth>0 || addToProblem==1) {
 
-      *cdepth = cutDepth;
       status = 1;
       int cutidx;
       MSK_getnumcon(env,&cutidx);
@@ -633,6 +636,8 @@ int addNewCut(MSKtask_t env, double* currSoln, double nodeObj, int asset, double
       MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, k); 
       MSK_toconic(env);
 
+      *cutIndex = cutidx;
+
       char txbuffer[80];
 
       if(FILEOUTPUT)
@@ -641,6 +646,7 @@ int addNewCut(MSKtask_t env, double* currSoln, double nodeObj, int asset, double
       if(FILEOUTPUT)
 	MSK_writedata(env, txbuffer);
     }
+
     
     delete[] zrowindex;
     delete[] zcolindex;
@@ -668,7 +674,8 @@ int addNewCut(MSKtask_t env, double* currSoln, double nodeObj, int asset, double
     MSK_getnumcon(env,&cutidx);
     MSK_appendcons(env,1);
     MSK_putqconk(env, cutidx, 2, zrowindex, zcolindex, zvalindex);
-    MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, 0); 
+    MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, 0);
+    *cutIndex = cutidx;
     
 
     MSKrescodee r;
@@ -740,7 +747,7 @@ int addNewCut(MSKtask_t env, double* currSoln, double nodeObj, int asset, double
     MSK_putqconk(env, cutidx, nofAsset, zrowindex, zcolindex, zvalindex);
     MSK_putaij(env, cutidx, N+asset, 2);
     MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, 1); 
-    
+    *cutIndex = cutidx;
     MSK_toconic(env);
 
     delete[] zrowindex;

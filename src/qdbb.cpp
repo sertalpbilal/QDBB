@@ -167,6 +167,8 @@ int parseInfo(int argc, char* argv[]) {
 	cutRule_ = 2;
       else if(strcmp(argv[i+1],"3")==0) // Special: all cuts
 	cutRule_ = 5;
+      else if(strcmp(argv[i+1],"4")==0) // Max violation order
+	cutRule_ = 6;
     }
     
     if(strcmp(tmp, "-mind")==0) // Min depth for cut generation
@@ -237,7 +239,7 @@ int startBB(int argc, char* argv[]) {
         //double prevObjective = activeNode->nodeObj;
         double firstObjective = activeNode->nodeObj; // Objective at relaxation
 	int firstNCut = totalCutsApplied_;
-        if(cutRule_==1) {
+        if(cutRule_==1) { // Always cut if possible
           while(iterN < iterationLimit_) {
             printText(4, "Node (%d) cut iteration %d of %d", activeNode->ID, iterN+1, iterationLimit_);
             int iterCut = 0;
@@ -339,7 +341,23 @@ int startBB(int argc, char* argv[]) {
           
         }
 	else if(cutRule_ == 6) { // Order cuts on violation choose fixed num
-	  // TODO
+	  // Step 0: For each asset, generate cut, and then add top -p of them
+	  // Cutting order is not important for this one (-c)
+	  iterN = 0;
+	  while(iterN < iterationLimit_) {
+            printText(4, "Node (%d) cut iteration %d of %d", activeNode->ID, iterN+1, iterationLimit_);
+            if(activeNode->totalCuts < cutLimit_) {
+	      int isNewCut = cut(activeNode); // could be more than 1
+              activeNode->totalCuts += isNewCut;
+              totalCutsApplied_ += isNewCut;
+              totalCutsGenerated_ += N;
+              totalCut += N;
+	    }
+            solveLP(activeNode);
+	    totalSocoSolved_++;
+            iterN++;
+          }
+	  
 	}
 	else {
           printText(3, "Undefined cutting rule. Please check readme.");
@@ -561,25 +579,84 @@ int branch(Node* activeNode) {
 int cut(Node* activeNode) {
   int status = 0;
   
-  int variableForCut = nextCut(N, cutPriority_, activeNode->nodeSoln, &(activeNode->usedCuts));
-  if(variableForCut >= 0 ) {
+  // Type 1: Generate in order specified by -c option, for x=1,2,3
+  if(cutRule_ < 6) {
+    int variableForCut = nextCut(N, cutPriority_, activeNode->nodeSoln, &(activeNode->usedCuts));
+    if(variableForCut >= 0 ) {
+      
+      double currsoln = activeNode->nodeSoln[variableForCut];
+      if(PROBLEMCODE==1) { // TODO Remove this if condition in future - problem specific
+	if(fabs(currsoln-round(currsoln))<1e-6) { // TODO make this one a parameter
+	  printText(3,"Node (%d) variable %d is close to integer %.3f, cut is not generated",activeNode->ID,variableForCut,currsoln);
+	  return 0;
+	} 
+      }
+      int cutIndex = 0;
+      int addToProblem  = 1;
+      status = addNewCut(activeNode->problem, &cutIndex, activeNode->nodeSoln, activeNode->nodeObj, variableForCut+1, activeNode->nodeSoln[variableForCut], cutSelection_, &cdepth_, addToProblem);
+      if(status>0) {
+	printText(3, "Node (%d) New cut for variable %d is added, value: %f", activeNode->ID, variableForCut, activeNode->nodeSoln[variableForCut]);
+      } else {
+	printText(3, "Node (%d) Cut generation failed, variable %d, value: %f", activeNode->ID, variableForCut, activeNode->nodeSoln[variableForCut]);
+      }
+    }
+  }
+  else if(cutRule_ == 6) { // Generate all possible cuts (N) and order them by violation, add top -p of them if possible
+    int i = 0;
+    double* cutDepthIndex = (double*) malloc(sizeof(double)*N);
+    for(i=0; i<N; i++) {
+      cdepth_ = -1e-8;
+      double currsoln = activeNode->nodeSoln[i];
+      if(fabs(currsoln-round(currsoln))< integerTolerance_) {
+	printText(3,"Node (%d) variable %d is close to integer %.3f, cut is not generated",activeNode->ID,i,currsoln);
+      }
+      else {
+	int response = 0;
+	int addToProblem = 0; // DO NOT add new cut to the problem, yet
+	int cutIndex = 0;
+	
+	response = addNewCut(activeNode->problem, &cutIndex, activeNode->nodeSoln, activeNode->nodeObj, i+1, activeNode->nodeSoln[i], cutSelection_, &cdepth_, addToProblem);
 
-    double currsoln = activeNode->nodeSoln[variableForCut];
-    if(PROBLEMCODE==1) { // TODO Remove this if condition in future - problem specific
-      if(fabs(currsoln-round(currsoln))<1e-6) { // TODO make this one a parameter
-      printText(3,"Node (%d) variable %d is close to integer %.3f, cut is not generated",activeNode->ID,variableForCut,currsoln);
-      return 0;
-    } 
+	if(response > 0) {
+	  printText(4, "Node (%d) New cut for variable %d is generated, value: %f", activeNode->ID, i, activeNode->nodeSoln[i]);
+	}
+	else {
+	  printText(4, "Node (%d) New cut for variable %d is failed, value: %f", activeNode->ID, i, activeNode->nodeSoln[i]);
+	}
+
+      }
+      cutDepthIndex[i] = cdepth_;
+      
     }
 
-
-
-    status = addNewCut(activeNode->problem, activeNode->nodeSoln, activeNode->nodeObj, variableForCut+1, activeNode->nodeSoln[variableForCut], cutSelection_, &cdepth_);
-    if(status>0) {
-      printText(3, "Node (%d) New cut for variable %d is added, value: %f", activeNode->ID, variableForCut, activeNode->nodeSoln[variableForCut]);
-    } else {
-      printText(3, "Node (%d) Cut generation failed, variable %d, value: %f", activeNode->ID, variableForCut, activeNode->nodeSoln[variableForCut]);
+    // All cuts are generated, now order and add
+    int effCutIter = 0;
+    while(effCutIter < cutPerIteration_) {
+      int biggestI = 0;
+      double biggestV = cutDepthIndex[0];
+      for(i=0; i<N; i++) {
+	if(cutDepthIndex[i] >= biggestV) {
+	  biggestI = i;
+	  biggestV = cutDepthIndex[i];
+	}
+      }
+      printText(6, "Max depth: %e, index: %d", biggestV, biggestI);
+      cutDepthIndex[biggestI] = -1e-8; // Prevent it being added again
+      if(biggestV >= 0) { // valid cut
+	int response = 0;
+	int addToProblem = 1;
+	int cutIndex = 0;
+	response = addNewCut(activeNode->problem, &cutIndex, activeNode->nodeSoln, activeNode->nodeObj, biggestI+1, activeNode->nodeSoln[biggestI], cutSelection_, &cdepth_, addToProblem);
+	status += response;
+	printText(3, "Node (%d) New cut for variable %d is added, value: %f", activeNode->ID, biggestI, activeNode->nodeSoln[biggestI]);
+      }
+      else {
+	break; // break while loop as no cut is effective anymore
+      }
     }
+    
+    free(cutDepthIndex);
+    
   }
   
   return status;

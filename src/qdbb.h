@@ -67,7 +67,10 @@ int cut(Node* activeNode);
 int eliminateNodes();
 int nextCut(int N, int heuType, double* soln, std::vector< std::vector<int> > *usedCuts);
 int getCurrentGap(double* curGap, double* lowerBound, int* lowerNode);
-int addNewCut(MSKtask_t env, double* currSoln, double nodeObj, int asset, double value, int option, long double* cdepth);
+// TODO: Generates new cut without adding it to the problem
+int generateNewCut(MSKtask_t env, double* currSoln, double nodeObj, int asset, double value, int option, long double* cdepth);
+
+int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, int asset, double value, int option, long double* cdepth, int addToProblem);
 int finishBB();
 int deleteNode(Node* aNode);
 int printToFile(Node* aNode);
