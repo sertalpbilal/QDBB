@@ -525,6 +525,14 @@ int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, in
       MSK_putqconk(env, cutidx, (N+1)*(N+2)/2, rowindex, colindex, valindex);
       
       *cutIndex = cutidx;
+
+      char txbuffer[80];
+
+      if(FILEOUTPUT)
+	sprintf(txbuffer, "result/afterCut%d.mps", asset);
+
+      if(FILEOUTPUT)
+	MSK_writedata(env, txbuffer);
     
       delete[] rowindex;
       delete[] colindex;
@@ -625,7 +633,7 @@ int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, in
     }
     std::cout << "a_N " << (-tau) << std::endl; */
 
-    if(cutDepth>0 || addToProblem==1) {
+    if(cutDepth>0 && addToProblem == 1) {
 
       status = 1;
       int cutidx;
