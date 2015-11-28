@@ -23,6 +23,7 @@ int N_;
 double Rt_;
 double C_;
 int k_;
+int qa_;
 int cardinaltype_ = 1;
 extern double integerTolerance_;
 extern double deepCutThreshold_;
@@ -84,6 +85,9 @@ int createProblem(MSKtask_t* task, int argc, char* argv[]) {
     if(strcmp(tmp, "-k")==0) // cardinality
       k_ = atoi(argv[i+1]);
 
+    if(strcmp(tmp, "-qa")==0) // cardinality
+      qa_ = atoi(argv[i+1]);
+
     if(strcmp(tmp, "-ct")==0) { // cardinality type - quadratic or linear
       if(strcmp(argv[i+1],"quadratic")==0) {
 	cardinaltype_ = 1;
@@ -94,6 +98,7 @@ int createProblem(MSKtask_t* task, int argc, char* argv[]) {
     }
 
   }
+  if(qa_==0) { qa_ = N_; }
 
   // create mu and Q here
   Q = new double*[N_];
@@ -593,36 +598,37 @@ int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, in
       printf("%2d %5s, %6.3f, %6.3e, %.3e\n", i, mname, mysolnxy[i],xlow, xupp);
     }
     */
-    
-    long double kd = k + 0.0;
-    long double tau = ( sqrt(1-(1/kd))  - 1 ) * 2 * kd;
-    //tau = 0;
-    //printf("\ntau: %Lf, k: %d\n",tau, k);
-    long double cutDepth = 0;
-    int* zrowindex = new int[N];
-    int* zcolindex = new int[N];
-    double*  zvalindex = new double[N];
-    for(int i=0; i<N; i++){zrowindex[i]=0; zcolindex[i]=0; zvalindex[i]=0.0;}
-    int zbusindex = 0;
-    for(int i=1; i<=N; i++) {
-      zrowindex[zbusindex]=N+i;
-      zcolindex[zbusindex]=N+i;
-      if(i==asset) {
-        //printf("\n asset: %d\n",asset);
-        zvalindex[zbusindex]=2+2*tau+0.0;
-      } else {
-        zvalindex[zbusindex]=2;
-      }
-      cutDepth += zvalindex[zbusindex]*currSoln[i-1]*currSoln[i-1];
-      zbusindex++;
-    }
 
-    // Linear to cutdepth
-    cutDepth = cutDepth / 2;
-    cutDepth -= currSoln[asset-1]*tau;
-    cutDepth -= kd;
+    if(qa_==N) {
+      long double kd = k + 0.0;
+      long double tau = ( sqrt(1-(1/kd))  - 1 ) * 2 * kd;
+      //tau = 0;
+      //printf("\ntau: %Lf, k: %d\n",tau, k);
+      long double cutDepth = 0;
+      int* zrowindex = new int[N];
+      int* zcolindex = new int[N];
+      double*  zvalindex = new double[N];
+      for(int i=0; i<N; i++){zrowindex[i]=0; zcolindex[i]=0; zvalindex[i]=0.0;}
+      int zbusindex = 0;
+      for(int i=1; i<=N; i++) {
+	zrowindex[zbusindex]=N+i;
+	zcolindex[zbusindex]=N+i;
+	if(i==asset) {
+	  //printf("\n asset: %d\n",asset);
+	  zvalindex[zbusindex]=2+2*tau+0.0;
+	} else {
+	  zvalindex[zbusindex]=2;
+	}
+	cutDepth += zvalindex[zbusindex]*currSoln[i-1]*currSoln[i-1];
+	zbusindex++;
+      }
+
+      // Linear to cutdepth
+      cutDepth = cutDepth / 2;
+      cutDepth -= currSoln[asset-1]*tau;
+      cutDepth -= kd;
     
-    *cdepth = cutDepth;
+      *cdepth = cutDepth;
     /*std::cout << "Cut depth: " << cutDepth << std::endl;
 
     for(int i=0; i<N; i++) {
@@ -633,32 +639,111 @@ int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, in
     }
     std::cout << "a_N " << (-tau) << std::endl; */
 
-    if(cutDepth>0 && addToProblem == 1) {
+      if(cutDepth>0 && addToProblem == 1) {
 
-      status = 1;
-      int cutidx;
-      MSK_getnumcon(env,&cutidx);
-      MSK_appendcons(env,1);
-      MSK_putqconk(env, cutidx, N, zrowindex, zcolindex, zvalindex);
-      MSK_putaij(env, cutidx, N+asset, - 0.5*tau);
-      MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, k); 
-      MSK_toconic(env);
+	status = 1;
+	int cutidx;
+	MSK_getnumcon(env,&cutidx);
+	MSK_appendcons(env,1);
+	MSK_putqconk(env, cutidx, N, zrowindex, zcolindex, zvalindex);
+	MSK_putaij(env, cutidx, N+asset, - 0.5*tau);
+	MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, k); 
+	MSK_toconic(env);
 
-      *cutIndex = cutidx;
+	*cutIndex = cutidx;
 
-      char txbuffer[80];
-
-      if(FILEOUTPUT)
-	sprintf(txbuffer, "result/afterCut%d.mps", asset);
+	char txbuffer[80];
+	
+	if(FILEOUTPUT)
+	  sprintf(txbuffer, "result/afterCut%d.mps", asset);
       
-      if(FILEOUTPUT)
-	MSK_writedata(env, txbuffer);
+	if(FILEOUTPUT)
+	  MSK_writedata(env, txbuffer);
+      }
     }
+    else if(qa_ < N) { // CYLINDRICAL CUT CASE
+      long double kd = k + 0.0;
+      //long double tau = -1;
+      long double cutDepth = 0;
+      int* zrowindex = new int[N];
+      int* zcolindex = new int[N];
+      double*  zvalindex = new double[N];
+      int* zlinearindex = new int[N];
+      for(int i=0; i<N; i++){zrowindex[i]=0; zcolindex[i]=0; zvalindex[i]=0.0;}
+      int zbusindex = 0;
+      int qaindex = 0;
+      for(int i=1; i<=N; i++) {
+	  
+	zrowindex[zbusindex]=N+i;
+	zcolindex[zbusindex]=N+i;
+	  
+	if(i==asset) {
+	  //printf("\n asset: %d\n",asset);
+	  zvalindex[zbusindex]=0;
+	  zlinearindex[zbusindex]=1;
+	  cutDepth += currSoln[i-1];
+	} else {
+	  if(qaindex < qa_ - 1) {
+	    zvalindex[zbusindex]=2;
+	    zlinearindex[zbusindex]=0;
+	    qaindex++;
+	  }
+	  else {
+	    zvalindex[zbusindex]=0;
+	    zlinearindex[zbusindex]=1;
+	    cutDepth += currSoln[i-1];
+	  }
+	}
+	cutDepth += zvalindex[zbusindex]*currSoln[i-1]*currSoln[i-1] / 2;
+	zbusindex++;
+      }
 
-    
-    delete[] zrowindex;
-    delete[] zcolindex;
-    delete[] zvalindex;
+      // Linear to cutdepth
+      cutDepth -= kd;
+      
+      *cdepth = cutDepth;
+      //std::cout << "Cut depth: " << cutDepth << std::endl;
+      
+      /* for(int i=0; i<N; i++) {
+	 std::cout << "Var[" << i << "]: " << currSoln[i] << std::endl;
+	 }
+	 for(int i=0; i<N; i++) {
+	 std::cout << "i: " << i << ", q_i: " << zvalindex[i]/2 << std::endl;
+	 }
+	 std::cout << "a_N " << (-tau) << std::endl; */
+      
+      if(cutDepth>0 && addToProblem == 1) {
+	
+	status = 1;
+	int cutidx;
+	MSK_getnumcon(env,&cutidx);
+	MSK_appendcons(env,1);
+	MSK_putqconk(env, cutidx, N, zrowindex, zcolindex, zvalindex);
+	for(int i=0; i<N; i++) {
+	  MSK_putaij(env, cutidx, N+i+1, zlinearindex[i]);
+	}
+	MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, k); 
+	//MSK_toconic(env);
+	
+	*cutIndex = cutidx;
+	
+	char txbuffer[80];
+	
+	if(FILEOUTPUT)
+	  sprintf(txbuffer, "result/afterCut%d.mps", asset);
+	
+	if(FILEOUTPUT)
+	  MSK_writedata(env, txbuffer);
+	
+	
+      }
+      
+      delete[] zrowindex;
+      delete[] zcolindex;
+      delete[] zvalindex;
+      delete[] zlinearindex;
+      
+    }
     
     return status;
     

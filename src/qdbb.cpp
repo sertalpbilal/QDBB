@@ -233,7 +233,8 @@ int startBB(int argc, char* argv[]) {
         printText(3, "Node (%d) has a higher objective than upper bound, pruning...", activeNode->ID);
         goto finaldecision;
       }
-      if(cutRule_>0 && activeNode->totalCuts < cutLimit_ && activeNode->depth >= minCutDepth_ && activeNode->depth <= maxCutDepth_) { // B&C
+      //std::cout << minCutDepth_ << " : " << activeNode->depth << std::endl;
+      if( (cutRule_>0 ) && (activeNode->totalCuts < cutLimit_) && (activeNode->depth >= minCutDepth_) && (activeNode->depth <= maxCutDepth_) ) { // B&C
         int totalCut = 0;
         int iterN = 0;
         //double prevObjective = activeNode->nodeObj;
@@ -442,6 +443,7 @@ summary_report:
   printText(1, "Number of nodes generated: %d", totalNodes_);
   printText(1, "Total SOCO solved: %d", totalSocoSolved_);
   printText(1, "Total time elapsed: %f seconds",  elapsed );
+  printText(1, "Time per SOCO subproblem: %f", ((0.0+elapsed)/totalSocoSolved_)  );
   printText(1, "Total cuts generated: %d", totalCutsGenerated_);
   printText(1, "Total cuts applied: %d", totalCutsApplied_);
   if(cutRule_==2)
@@ -457,7 +459,7 @@ summary_report:
   getCurrentGap(&finalgap_, &t1, &t2);
   printText(1,"Final gap: %5.2f %%", finalgap_);
   for(unsigned int i=0; i<cutImprovements_.size(); i++) {
-    printText(3, "Cut[ %4d ], Depth: %8Le, Tree Depth: %.0Le, Improvement: %8Le, CurrentObj: %8Le",(i+1), cutImprovements_[i][0], cutImprovements_[i][1], cutImprovements_[i][2], cutImprovements_[i][3]);
+    printText(3, "Cut[ %4d ], Depth: %8Le, Tree Depth: %Lf, Improvement: %8Le, CurrentObj: %8Le",(i+1), cutImprovements_[i][0], cutImprovements_[i][1], cutImprovements_[i][2], cutImprovements_[i][3]);
   }
   printText(1,"Done...");
   return status;

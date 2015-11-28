@@ -14,6 +14,7 @@ extern int cardinaltype_;
 extern int PROBLEMCODE;// = 2;
 extern string datafolder_;
 extern int FILEOUTPUT;
+extern int qa_;
 
 /*  @short Creates the cardinality constrained portfolio optimization problem
  *  @param[in] task  Problem instance (MOSEK)
@@ -175,8 +176,9 @@ int createCardinality(MSKtask_t* task)
   if(FILEOUTPUT)
     MSK_writedata(*task, "result/CardinalityOriginal.mps");
   //MSK_writedata(*task, "CardinalityOriginal.lp");
-  
-  MSK_toconic (*task);
+
+  if(qa_ == N_)
+    MSK_toconic (*task);
   
   if(FILEOUTPUT)
     MSK_writedata(*task, "result/CardinalityOriginal2.mps");
