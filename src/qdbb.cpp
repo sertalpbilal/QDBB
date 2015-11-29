@@ -22,7 +22,7 @@ int finiteUpperBound_ = 0;
 double* bestSoln_;
 int branchingRule_ = 0; // 0: most fractional, 1: highest cost, 2: random, 3:bonami 
 int cutPriority_ = 0; // 0: default, most fractional, 1: best-value
-int cutRule_ = 1; // 0: default, no cut, 1: always cut, 2: fading-cuts, 3: root-heuristic cut
+int cutRule_ = 0; // 0: default, no cut, 1: always cut, 2: fading-cuts, 3: root-heuristic cut
 // 4: min depth for cut, 5: only if deep cut
 int searchRule_ = 0; // 0: default, depth first, left, 1: depth first right, 2: breadth first, 3: best (lower bound)
 double deepCutThreshold_ = 0.05; // deep-cut threshold value (percentage)
@@ -55,7 +55,9 @@ Node* bestNode;
 std::vector< Node* > nodeList_;
 std::vector< Node* > allNodeList_; // Keeps pointer of all nodes for destructor
 std::vector<long double*> cutImprovements_;
-long double cdepth_;
+long double cdepth_; // depth of latest cyt
+int cvariable_; // variable that cut is generated on
+double cvarvalue_; // value of the variable at the time cut is generated
 
 extern int PROBLEMCODE;
 extern double* mu;
@@ -160,15 +162,15 @@ int parseInfo(int argc, char* argv[]) {
 
     if(strcmp(tmp, "-x")==0) { // Termination
       if(strcmp(argv[i+1],"0")==0) // No Cut
-	cutRule_ = 0;
-      if(strcmp(argv[i+1],"1")==1) // Always cuts!
-	cutRule_ = 1;
+	{cutRule_ = 0;}
+      else if(strcmp(argv[i+1],"1")==0) // Always cuts!
+	{cutRule_ = 1;}
       else if(strcmp(argv[i+1],"2")==0) // Fading cuts
-	cutRule_ = 2;
+	{cutRule_ = 2;}
       else if(strcmp(argv[i+1],"3")==0) // Special: all cuts
-	cutRule_ = 5;
+	{cutRule_ = 5;}
       else if(strcmp(argv[i+1],"4")==0) // Max violation order
-	cutRule_ = 6;
+	{cutRule_ = 6;}
     }
     
     if(strcmp(tmp, "-mind")==0) // Min depth for cut generation
@@ -260,11 +262,13 @@ int startBB(int argc, char* argv[]) {
 		bestImprovement_ = objImprovement;
 	      }
 	      if(totalCutsApplied_ == firstNCut+1) { // Exactly 1 cut
-		long double* impr = (long double*) malloc(4*sizeof(long double));
+		long double* impr = (long double*) malloc(6*sizeof(long double));
 		impr[0] = cdepth_; // depth
 		impr[1] = activeNode->depth; // tree depth
 		impr[2] = objImprovement; // obj improvement
 		impr[3] = activeNode->nodeObj; // current objective
+		impr[4] = cvariable_; // asset
+		impr[5] = cvarvalue_; //value
 		cutImprovements_.push_back(impr);
 	      }
 	      totalImprovement_ += objImprovement;
@@ -295,17 +299,6 @@ int startBB(int argc, char* argv[]) {
             }
             solveLP(activeNode);
             totalSocoSolved_++;
-	    // IMPROVEMENT
-	    if(totalCutsApplied_ > firstNCut) {
-	      long double objImprovement = activeNode->nodeObj -  firstObjective;
-	      if(objImprovement  > bestImprovement_) {
-		bestImprovement_ = objImprovement;
-	      }
-	      totalImprovement_ += objImprovement;
-	      firstObjective = activeNode->nodeObj;
-	      firstNCut = totalCutsApplied_;
-	    }
-	    // ENDOFIMPROVEMENT
 	    if(!activeNode->feasible) { break; }
             prevObjective = newObjective;
             newObjective = activeNode -> nodeObj;
@@ -459,7 +452,7 @@ summary_report:
   getCurrentGap(&finalgap_, &t1, &t2);
   printText(1,"Final gap: %5.2f %%", finalgap_);
   for(unsigned int i=0; i<cutImprovements_.size(); i++) {
-    printText(3, "Cut[ %4d ], Depth: %8Le, Tree Depth: %Lf, Improvement: %8Le, CurrentObj: %8Le",(i+1), cutImprovements_[i][0], cutImprovements_[i][1], cutImprovements_[i][2], cutImprovements_[i][3]);
+    printText(3, "Cut[ %4d ], Depth: %8Le, Tree Depth: %Lf, Improvement: %8Le, CurrentObj: %8Le, Variable: %Lf, Value: %Lf",(i+1), cutImprovements_[i][0], cutImprovements_[i][1], cutImprovements_[i][2], cutImprovements_[i][3], cutImprovements_[i][4], cutImprovements_[i][5]);
   }
   printText(1,"Done...");
   return status;
@@ -598,6 +591,8 @@ int cut(Node* activeNode) {
       status = addNewCut(activeNode->problem, &cutIndex, activeNode->nodeSoln, activeNode->nodeObj, variableForCut+1, activeNode->nodeSoln[variableForCut], cutSelection_, &cdepth_, addToProblem);
       if(status>0) {
 	printText(3, "Node (%d) New cut for variable %d is added, value: %f", activeNode->ID, variableForCut, activeNode->nodeSoln[variableForCut]);
+	cvariable_ = variableForCut;
+	cvarvalue_ = activeNode->nodeSoln[variableForCut];
       } else {
 	printText(3, "Node (%d) Cut generation failed, variable %d, value: %f", activeNode->ID, variableForCut, activeNode->nodeSoln[variableForCut]);
       }
