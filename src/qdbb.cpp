@@ -25,7 +25,7 @@ int cutPriority_ = 1; // 0: default, most fractional (MF), 1: highest cost (HC),
 int cutRule_ = 2; // 0: no cut, 1: always cut, 2: default, fading-cuts, 3: root-heuristic cut
 // 4: min depth for cut, 5: only if deep cut
 int searchRule_ = 1; // 0: depth first, left, 1: default, depth first right, 2: breadth first, 3: best (lower bound)
-double deepCutThreshold_ = 0.05; // deep-cut threshold value (percentage)
+double deepCutThreshold_ = 0; // deep-cut threshold value (percentage)
 double bestImprovement_ = 0;
 double totalImprovement_ = 0;
 int controlValve = 50;
