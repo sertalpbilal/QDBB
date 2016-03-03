@@ -43,6 +43,8 @@ for efile in sorted(files):
             exp.append(words[4])
         if "cuts generated:" in line:
             exp.append(words[4])
+        if "Total objective improvement:" in line:
+            exp.append(words[4])
         if "Best objective improvement:" in line:
             exp.append(words[4])
         if "SOCO solved:" in line:
@@ -58,6 +60,7 @@ for efile in sorted(files):
             lead_time = exp[5]
             exp.append(" ")
         else:
+            node_imp = "0"
             node_imp = "% 8.2f %%" % ( (float(lead_node)-float(exp[2]))/max(1,float(lead_node)) * 100 )
             exp.append(node_imp)
             time_imp = "% 8.2f %%" % ( (float(lead_time)-float(exp[5]))/max(1,float(lead_time)) * 100 )
@@ -69,7 +72,7 @@ for efile in sorted(files):
     ofile.close()
 
 #titles = []
-title = ['ID', 'Filename','NProc','NGen','SOCO S','Time       ','Cuts G','Cuts Ap','Best Impr.', 'Objective','Node Chg','Time Chg','Time/SOCO']
+title = ['ID', 'Filename','NProc','NGen','SOCO S','Time       ','Cuts G','Cuts Ap','Total Impr.','Best Impr.', 'Objective','Node Chg','Time Chg','Time/SOCO']
 result.insert(0, title)
 
 if(status_format != 1):
