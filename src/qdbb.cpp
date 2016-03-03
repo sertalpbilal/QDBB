@@ -28,7 +28,7 @@ int searchRule_ = 1; // 0: depth first, left, 1: default, depth first right, 2: 
 double deepCutThreshold_ = 0; // deep-cut threshold value (percentage)
 double bestImprovement_ = 0;
 double totalImprovement_ = 0;
-int controlValve = 50;
+int controlValve = 20;
 int cutSelection_ = 1;
 int cutLimit_ = 100; // max number of cuts to add, default is 1
 int cutPerIteration_ = 3; // number of cuts to be added at each relaxation
@@ -280,7 +280,7 @@ int startBB(int argc, char* argv[]) {
             iterN++;
           }
         }
-        else if(cutRule_ == 2) { // Fading Cuts, -x 1
+        else if(cutRule_ == 2) { // Fading Cuts, -x 2
           double prevObjective = activeNode->nodeObj + 2*objectiveTolerance_;
           double newObjective = activeNode->nodeObj;
           totalNodeFadingCuts_++;
@@ -305,7 +305,7 @@ int startBB(int argc, char* argv[]) {
 	    fadingIter++;
           }
         } 
-        else if(cutRule_ == 5) { // all cuts at root node!   -x 2
+        else if(cutRule_ == 5) { // all cuts at root node!   -x 3
           
           if(activeNode->ID==0) { // If it is root node
           

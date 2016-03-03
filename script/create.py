@@ -26,13 +26,30 @@ dataset = ['AA'] # ['RD0', 'RD1', 'RD2', 'RD3', 'RD4', 'RD5', 'RD6', 'RD7', 'RD8
 capital = [100000,200000,300000,400000,500000,600000,700000,800000,900000,1000000]
 ret = [0.01,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.09,0.1] 
 problemsize = [20] # not yet implemented
-cardinality = []
-branch = ['mf'] # 'mf', 'hc', 'bonami', 'hvar', 'random'
-cut = ['hc'] # 'mf', 'hc', 'bonami', 'hvar', 'random'
-search = ['df1'] # 'df0', 'df1', 'best', 'breadth'
+
+# custom problem set
+cps = []
+'''cps.append(['AA' ,20,400000, 0.05])
+cps.append(['RD0',10,400000, 0.08])
+cps.append(['RD1',30,100000, 0.07])
+cps.append(['RD2',10,300000, 0.03])
+cps.append(['RD3',10,300000, 0.04])
+cps.append(['RD4',10,800000, 0.03])
+cps.append(['RD5',10,700000,0.05])
+cps.append(['RD6',10,600000, 0.02])
+cps.append(['RD7',10,1000000, 0.05])
+cps.append(['RD8',10,400000, 0.07])
+cps.append(['RD9',10,700000, 0.08])
+'''
+cps.append(['RD1',30,100000, 0.07])
+
+cardinality = [1,2,3,4,5]
+branch = [ 'mf' ] # , 'hc', 'bonami', 'hvar'] #, 'random']
+cut = ['hc'] # ['mf', 'hc', 'bonami', 'hvar'] #, 'random']
+search = ['breadth'] # [ 'df0', 'df1', 'best', 'breadth']
 cutiter = [1]
 cutperiter = [1]
-cutlim = [20]
+cutlim = [5]
 mincutdepth = [0]
 verbosity = 1
 f_ = 0
@@ -83,85 +100,93 @@ allproblems = []
 comb = list(itertools.product(cutlim,cutiter,cutperiter,mincutdepth))
 index = 0;
 
+'''
+
 # Problem 1 - Roundlot
 pname = 'roundlot'
-for (ds,ps,br,cu,sea,c,r) in list(itertools.product(dataset,problemsize,branch,cut,search,capital,ret)):
-    x = cl = ci = cp = cd = k = 0
-    index, ct, pinfo, maxd = index+1, 'null', 'leader', omaxd
-    temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
-    allproblems.append(temp)
-    pinfo = ''
-    #x = 2
-    #for cl in cutlim:
-    #    index, x, pinfo = index+1, 2, ''
-    #    ci, cp = 1, 1
-    #    temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
-    #    allproblems.append(temp)
-    x = 1
-    for (cl,ci,cp,cd) in comb:
-        index = index+1
-        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
+#for (ds,ps,br,cu,sea,c,r) in list(itertools.product(dataset,problemsize,branch,cut,search,capital,ret)):
+for(ds,ps,c,r) in cps:
+    for(br,cu,sea) in list(itertools.product(branch,cut,search)):
+        x = cl = ci = cp = cd = k = 0
+        index, ct, pinfo, maxd = index+1, 'null', 'leader', omaxd
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
         allproblems.append(temp)
-    #x = 4
-    #index, ct, pinfo = index+1, 'null', 'depthorder'
-    #cl, ci, cp, cd, maxd = ps, 1, ps, 0, 0
-    #temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
-    #allproblems.append(temp)
+        pinfo = ''
+        x = 2
+        for cl in cutlim:
+            index, x, pinfo = index+1, 2, ''
+            ci, cp = 1, 1
+            temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
+            allproblems.append(temp)
+        x = 1
+        for (cl,ci,cp,cd) in comb:
+            index = index+1
+            temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
+            allproblems.append(temp)
+        x = 4
+        index, ct, pinfo = index+1, 'null', 'depthorder'
+        cl, ci, cp, cd, maxd = ps, 1, ps, 0, 0
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
+        allproblems.append(temp)
+
+'''
 
 # Problem 2 - Cardinality
 pname = 'cardinality'
-for (ds,ps,br,cu,sea,k,r) in list(itertools.product(dataset,problemsize,branch,cut,search,cardinality,ret)):
-    x = cl = ci = cp = cd  = 0
-    index, ct, pinfo, maxd = index+1, 'quadratic', 'leader', omaxd
-    temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
-    allproblems.append(temp)
-    index, ct, pinfo = index+1, 'linear', ''
-    temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
-    allproblems.append(temp)
-    for cl in cutlim:
-        index, ct, x, pinfo = index+1, 'quadratic', 2, ''
-        ci, cp = 1, 1
-        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
+for(ds,ps,c,r) in cps:
+    for (br,cu,sea,k) in list(itertools.product(branch,cut,search,cardinality)):
+        x = cl = ci = cp = cd  = 0
+        index, ct, pinfo, maxd = index+1, 'quadratic', 'leader', omaxd
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
         allproblems.append(temp)
-    for cl in cutlim:
-        index, x, pinfo = index+1, 3, ''
-        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
+        index, ct, pinfo = index+1, 'linear', ''
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
         allproblems.append(temp)
-    x = 1
-    for (cl,ci,cp,cd) in comb:
-        index = index+1
-        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
+        for cl in cutlim:
+            index, ct, x, pinfo = index+1, 'quadratic', 2, ''
+            ci, cp = 1, 1
+            temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
+            allproblems.append(temp)
+        for cl in cutlim:
+            index, x, pinfo = index+1, 3, ''
+            temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
+            allproblems.append(temp)
+        x = 1
+        for (cl,ci,cp,cd) in comb:
+            index = index+1
+            temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
+            allproblems.append(temp)
+        x = 4
+        index, ct, pinfo = index+1, 'null', 'depthorder'
+        cl, ci, cp, cd, maxd = ps, 1, ps, 0, 0
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
         allproblems.append(temp)
-    x = 4
-    index, ct, pinfo = index+1, 'null', 'depthorder'
-    cl, ci, cp, cd, maxd = ps, 1, ps, 0, 0
-    temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
-    allproblems.append(temp)
 
 # Problem 3 - Single Bound
 pname = 'single'
-for (ds,ps,br,cu,sea,k,r) in list(itertools.product(dataset,problemsize,branch,cut,search,cardinality,ret)):
-    x = cl = ci = cp = cd  = 0
-    index, ct, pinfo, maxd = index+1, 'quadratic', 'leader', omaxd
-    temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
-    allproblems.append(temp)
-    index, ct, pinfo = index+1, 'linear', ''
-    temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
-    allproblems.append(temp)
-    for cl in cutlim:
-        index, ct, x, pinfo = index+1, 'quadratic', 2, ''
-        ci, cp = 1, 1
-        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
+for(ds,ps,c,r) in cps:
+    for (br,cu,sea,k) in list(itertools.product(branch,cut,search,cardinality)):
+        x = cl = ci = cp = cd  = 0
+        index, ct, pinfo, maxd = index+1, 'quadratic', 'leader', omaxd
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
         allproblems.append(temp)
-    for cl in cutlim:
-        index, x, pinfo = index+1, 3, ''
-        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
+        index, ct, pinfo = index+1, 'linear', ''
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
         allproblems.append(temp)
-    x = 1
-    for (cl,ci,cp,cd) in comb:
-        index = index+1
-        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
-        allproblems.append(temp)
+        for cl in cutlim:
+            index, ct, x, pinfo = index+1, 'quadratic', 2, ''
+            ci, cp = 1, 1
+            temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
+            allproblems.append(temp)
+        for cl in cutlim:
+            index, x, pinfo = index+1, 3, ''
+            temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
+            allproblems.append(temp)
+        x = 1
+        for (cl,ci,cp,cd) in comb:
+            index = index+1
+            temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
+            allproblems.append(temp)
 
 # Problem 4 - Combined
 

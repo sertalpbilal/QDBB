@@ -43,6 +43,8 @@ for efile in sorted(files):
             exp.append(words[4])
         if "cuts generated:" in line:
             exp.append(words[4])
+        if "Total objective improvement:" in line:
+            exp.append(words[4])
         if "Best objective improvement:" in line:
             exp.append(words[4])
         if "SOCO solved:" in line:
@@ -55,22 +57,22 @@ for efile in sorted(files):
         if "leader" in expfile[int(node_id)]:
             exp.append("leader")
             lead_node = exp[2]
-            #lead_time = exp[5]
+            lead_time = exp[5]
             exp.append(" ")
         else:
             node_imp = "0"
-            #node_imp = "% 8.2f %%" % ( (float(lead_node)-float(exp[2]))/max(1,float(lead_node)) * 100 )
+            node_imp = "% 8.2f %%" % ( (float(lead_node)-float(exp[2]))/max(1,float(lead_node)) * 100 )
             exp.append(node_imp)
-            #time_imp = "% 8.2f %%" % ( (float(lead_time)-float(exp[5]))/max(1,float(lead_time)) * 100 )
-            #exp.append(time_imp)
-        #time_per_soco = "%.6f" % (float(exp[5])/float(exp[4]))
-        #exp.append(time_per_soco)
+            time_imp = "% 8.2f %%" % ( (float(lead_time)-float(exp[5]))/max(1,float(lead_time)) * 100 )
+            exp.append(time_imp)
+        time_per_soco = "%.6f" % (float(exp[5])/float(exp[4]))
+        exp.append(time_per_soco)
     if( summary_format == 0 or (summary_format == 1 and found ==1 )):
             result.append(exp)
     ofile.close()
 
 #titles = []
-title = ['ID', 'Filename','NProc','NGen','SOCO S','Time       ','Cuts G','Cuts Ap','Best Impr.', 'Objective','Node Chg','Time Chg','Time/SOCO']
+title = ['ID', 'Filename','NProc','NGen','SOCO S','Time       ','Cuts G','Cuts Ap','Total Impr.','Best Impr.', 'Objective','Node Chg','Time Chg','Time/SOCO']
 result.insert(0, title)
 
 if(status_format != 1):
