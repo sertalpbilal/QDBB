@@ -18,6 +18,8 @@ extern string datafolder_;
 extern double integerTolerance_;
 extern int FILEOUTPUT;
 
+extern int cutRule_;
+
 /*  @short Creates the single cardinality constrained portfolio optimization problem
  *  @param[in] task  Problem instance (MOSEK)
  *  @param[in] argv  User input at runtime
@@ -152,9 +154,9 @@ int createSingleCardinality(MSKtask_t* task)
   if(FILEOUTPUT) {
     MSK_writedata(*task, "result/singleOriginal.mps");
   }
-  
-  MSK_toconic(*task);
 
+  MSKrescodee a =MSK_toconic(*task);
+    
   if(FILEOUTPUT) {
     MSK_writedata(*task, "result/singleOriginal2.mps");
   }

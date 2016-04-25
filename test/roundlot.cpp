@@ -211,9 +211,10 @@ int createRoundlot(MSKtask_t* task)
   }
   
   MSK_putqconk(*task, 0, (N+1)*N/2, rowindex, colindex, valindex);
-  if(FILEOUTPUT)
+  if(FILEOUTPUT) {
     MSK_writedata(*task, "result/RoundlotOriginal.mps");
-
+    MSK_writedata(*task, "result/RoundlotOriginal.lp");
+  }
   string solver("MOSEK");
   
   delete[] rowindex;

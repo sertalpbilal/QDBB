@@ -8,12 +8,11 @@ int FILEOUTPUT = 0;
 
 #define printText(flag, ...) if (flag <= OUTLEV) { printf("%d:%*s",flag,2*flag,""); printf(__VA_ARGS__); printf("\n"); }
 
-
-/*static void MSKAPI printstr(void *handle, MSKCONST char str[]) 
-{ 
-  printf("%s",str); 
-  } */
-
+static void MSKAPI printstr(void *handle,
+			    MSKCONST char str[])
+{
+  printf("%s",str);
+}
 
 
 MSKtask_t oProblem = NULL; // Original problem instance
@@ -161,16 +160,20 @@ int parseInfo(int argc, char* argv[]) {
       cutPerIteration_ = atoi(argv[i+1]);
 
     if(strcmp(tmp, "-x")==0) { // Termination
-      if(strcmp(argv[i+1],"0")==0) // No Cut
+      if(strcmp(argv[i+1],"0")==0) // No Cut (BB)
 	{cutRule_ = 0;}
-      else if(strcmp(argv[i+1],"1")==0) // Always cuts!
+      else if(strcmp(argv[i+1],"1")==0) // Always cuts! (BCC-F)
 	{cutRule_ = 1;}
-      else if(strcmp(argv[i+1],"2")==0) // Fading cuts
+      else if(strcmp(argv[i+1],"2")==0) // Fading cuts (BCC-I)
 	{cutRule_ = 2;}
-      else if(strcmp(argv[i+1],"3")==0) // Special: all cuts
+      else if(strcmp(argv[i+1],"3")==0) // Special: all cuts (BCC-R)
 	{cutRule_ = 5;}
-      else if(strcmp(argv[i+1],"4")==0) // Max violation order
+      else if(strcmp(argv[i+1],"4")==0) // Max violation order (BCC-D)
 	{cutRule_ = 6;}
+      else if(strcmp(argv[i+1],"10")==0) // Pure MOSEK (MOSEK)
+	{cutRule_ = 10;}
+      else if(strcmp(argv[i+1],"11")==0) // Mosek with cuts at root (MOSEK-R)
+	{cutRule_ = 11;}
     }
     
     if(strcmp(tmp, "-mind")==0) // Min depth for cut generation
@@ -221,7 +224,7 @@ int startBB(int argc, char* argv[]) {
       printText(4, "Processing the node now...");
       activeNode->processed = true;
       nodesProcessed_++;
-      solveLP(activeNode);
+      solveLP(activeNode,1);
       totalSocoSolved_++;
       if(!activeNode->feasible) {
         printText(4, "Node's (%d) relaxation is infeasible. Pruning...", activeNode->ID);
@@ -254,7 +257,7 @@ int startBB(int argc, char* argv[]) {
               iterCut++;
               totalCut++;
             }
-            solveLP(activeNode);
+            solveLP(activeNode,1);
 	    // IMPROVEMENT
 	    long double objImprovement = activeNode->nodeObj -  firstObjective;
 	    if(totalCutsApplied_ > firstNCut) {
@@ -297,7 +300,7 @@ int startBB(int argc, char* argv[]) {
               printText(6, "Cut limit reached for node %d",activeNode->ID);
               break;
             }
-            solveLP(activeNode);
+            solveLP(activeNode,1);
             totalSocoSolved_++;
 	    if(!activeNode->feasible) { break; }
             prevObjective = newObjective;
@@ -315,7 +318,7 @@ int startBB(int argc, char* argv[]) {
               totalCutsGenerated_ ++;
               totalCutsApplied_ += isNewCut;
             }
-            solveLP(activeNode);
+            solveLP(activeNode,1);
 	    // IMPROVEMENT
 	    if(totalCutsApplied_ > firstNCut) {
 	      long double objImprovement = activeNode->nodeObj -  firstObjective;
@@ -347,14 +350,49 @@ int startBB(int argc, char* argv[]) {
               totalCutsGenerated_ += N;
               totalCut += N;
 	    }
-            solveLP(activeNode);
+            solveLP(activeNode,1);
 	    totalSocoSolved_++;
             iterN++;
           }
 	  
 	}
+	else if(cutRule_ == 10) {
+	  // pure MOSEK
+	  if(activeNode->ID==0) {
+	    solveLP(activeNode,0); // Not a relaxation
+	    // Parse info
+	    // Node: MSK_IINF_MIO_NUM_RELAX
+	    int totnode = 0, pronode = 0;
+	    MSK_getintinf (activeNode->problem,  MSK_IINF_MIO_NUM_RELAX , &pronode);
+	    MSK_getintinf (activeNode->problem,  MSK_IINF_MIO_NUM_BRANCH, &totnode);
+	    //printf("%d\n",totnode);
+	    nodesProcessed_ = pronode;
+	    totalNodes_ = totnode;
+	    totalSocoSolved_ = pronode;
+	  }
+	}
+	else if(cutRule_ == 11) {
+	  // MOSEK with DCCs at ROOT NODE
+	  if(activeNode->ID==0) { // If it is root node
+          
+            for(int i=0; i<N; i++) {
+              int isNewCut = cut(activeNode);
+              activeNode->totalCuts += isNewCut;
+              totalCutsGenerated_ ++;
+              totalCutsApplied_ += isNewCut;
+            }
+            solveLP(activeNode,0); // Not a relaxation
+	    int totnode = 0, pronode = 0;
+	    MSK_getintinf (activeNode->problem,  MSK_IINF_MIO_NUM_RELAX , &pronode);
+	    MSK_getintinf (activeNode->problem,  MSK_IINF_MIO_NUM_BRANCH, &totnode);
+	    //printf("%d\n",totnode);
+	    nodesProcessed_ = pronode;
+	    totalNodes_ = totnode;
+	    totalSocoSolved_ = pronode;
+          }
+	}
 	else {
-          printText(3, "Undefined cutting rule. Please check readme.");
+          printText(3, "Undefined cutting strategy. Please check readme.");
         }
         
       }
@@ -575,7 +613,7 @@ int cut(Node* activeNode) {
   int status = 0;
   
   // Type 1: Generate in order specified by -c option, for x=1,2,3
-  if(cutRule_ < 6) {
+  if(cutRule_ < 6 || cutRule_ == 11) {
     int variableForCut = nextCut(N, cutPriority_, activeNode->nodeSoln, &(activeNode->usedCuts));
     if(variableForCut >= 0 ) {
       
@@ -891,7 +929,7 @@ int getCurrentGap(double* curGap, double* lowerBound, int* lowerNode) {
 
 }
 
-int solveLP(Node* aNode) {
+int solveLP(Node* aNode, int relax) {
   int status = 0;
   
   MSKtask_t originaltask = aNode->problem;
@@ -899,34 +937,46 @@ int solveLP(Node* aNode) {
   MSKtask_t mtask;
   //MSK_clonetask(originaltask, &mtask);
   mtask = originaltask;
-  
-  MSK_putintparam(mtask, MSK_IPAR_MIO_MODE, MSK_MIO_MODE_IGNORED); // make it LP
-  MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_LINDEP_USE, MSK_OFF);
-  MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_USE, MSK_PRESOLVE_MODE_OFF);
-  MSK_putintparam(mtask, MSK_IPAR_INTPNT_REGULARIZATION_USE, MSK_OFF);
-  MSK_putintparam(mtask, MSK_IPAR_INTPNT_SCALING, MSK_SCALING_NONE);
-  MSK_putintparam(mtask, MSK_IPAR_NUM_THREADS, 1);
-  MSK_putintparam(mtask, MSK_IPAR_INTPNT_BASIS, 0);
-  //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_INFEAS, 1e-16);
-  //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_PFEAS, 1e-16);
-  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_TOL_PFEAS, 1e-16);
-  //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_DFEAS, 1e-16);
-  //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_REL_GAP, 1e-16);
-  MSK_putintparam(mtask, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_CONIC);
-  MSK_putintparam(mtask, MSK_IPAR_INTPNT_MAX_ITERATIONS, 30000);
-  MSK_putintparam(mtask, MSK_IPAR_BI_IGNORE_MAX_ITER, MSK_ON);
-  //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
-  //MSK_putdouparam(mtask, MSK_DPAR_CHECK_CONVEXITY_REL_TOL, 100000);
-  
-  // QP PARAMS!
-  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_TOL_DFEAS, 1e-16);
-  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_NL_TOL_DFEAS, 1e-16);
-  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_NL_TOL_PFEAS, 1e-16);
 
+  
+  if(relax==1) {
+    MSK_putintparam(mtask, MSK_IPAR_MIO_MODE, MSK_MIO_MODE_IGNORED); // make it LP
+    MSK_putintparam(mtask, MSK_IPAR_INTPNT_REGULARIZATION_USE, MSK_OFF);
+    MSK_putintparam(mtask, MSK_IPAR_INTPNT_SCALING, MSK_SCALING_NONE);
+    MSK_putintparam(mtask, MSK_IPAR_INTPNT_BASIS, 0);
+    MSK_putintparam(mtask, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_CONIC);
+    MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_LINDEP_USE, MSK_OFF);
+    MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_USE, MSK_PRESOLVE_MODE_OFF);
+    //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_INFEAS, 1e-16);
+    //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_PFEAS, 1e-16);
+    MSK_putdouparam(mtask, MSK_DPAR_INTPNT_TOL_PFEAS, 1e-16);
+    //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_DFEAS, 1e-16);
+    //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_REL_GAP, 1e-16);
+    MSK_putintparam(mtask, MSK_IPAR_INTPNT_MAX_ITERATIONS, 30000);
+    MSK_putintparam(mtask, MSK_IPAR_BI_IGNORE_MAX_ITER, MSK_ON);
+    //MSK_putdouparam(mtask, MSK_DPAR_CHECK_CONVEXITY_REL_TOL, 100000);
+    
+    // QP PARAMS!
+    MSK_putdouparam(mtask, MSK_DPAR_INTPNT_TOL_DFEAS, 1e-16);
+    MSK_putdouparam(mtask, MSK_DPAR_INTPNT_NL_TOL_DFEAS, 1e-16);
+    MSK_putdouparam(mtask, MSK_DPAR_INTPNT_NL_TOL_PFEAS, 1e-16);
+  }
+  else {
+    char funame[80];
+    sprintf(funame, "../test/result/int%d.mps", aNode->ID);
+    MSK_writedata(mtask, funame);
+    MSK_readdata (mtask, funame);
+    MSK_putintparam(mtask, MSK_IPAR_MIO_MODE, MSK_MIO_MODE_SATISFIED);
+    MSK_putintparam(mtask, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_FREE);
+    MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
+  }
+  
+  //MSK_putintparam(mtask, MSK_IPAR_NUM_THREADS, 1);
+  
 
   int reattempted = 1;
   //solutionpoint:
-
+ 
   MSKrescodee trmcode;
   MSKrescodee r; 
   r = MSK_optimizetrm(mtask,&trmcode);
@@ -935,8 +985,17 @@ int solveLP(Node* aNode) {
   MSK_solutionsummary(mtask,MSK_STREAM_LOG);
   
   MSKsolstae solsta;
-  MSKrescodee obsolsta = MSK_getsolsta (mtask, MSK_SOL_ITR, &solsta); 
+  MSKsoltypee whichsol;
+  if(relax) {  whichsol = MSK_SOL_ITR; }
+  else      {  whichsol = MSK_SOL_ITG; }
+  MSKrescodee obsolsta = MSK_getsolsta (mtask, whichsol, &solsta); 
   MSKrealt primalobj;
+
+  // hack for mosek problems
+  //  if(solsta==MSK_SOL_STA_UNKNOWN && relax==0) {
+    
+  //  goto resolve;
+  //}
 
   //printf("TRMCODE: %d\n", trmcode);
   //printf("SOLSTA: %d\n", solsta);
@@ -954,23 +1013,21 @@ int solveLP(Node* aNode) {
   case MSK_SOL_STA_PRIM_AND_DUAL_FEAS:
   case MSK_SOL_STA_INTEGER_OPTIMAL:
   case MSK_SOL_STA_NEAR_INTEGER_OPTIMAL:
-     
       aNode->feasible = true;
-      MSK_getprimalobj(mtask, MSK_SOL_ITR, &primalobj);
+      MSK_getprimalobj(mtask, whichsol, &primalobj);
       aNode->nodeObj = primalobj;
       if(primalobj > aNode->lowerBound) {
         aNode -> lowerBound = primalobj;
       }
       //aNode -> nodeSoln = (double*) malloc(N*sizeof(double));
-      if(PROBLEMCODE==1) {
-        MSK_getsolutionslice(mtask, MSK_SOL_ITR, MSK_SOL_ITEM_XX, 1, N+1, aNode->nodeSoln);
-      } else if(PROBLEMCODE==2) {
-        MSK_getsolutionslice(mtask, MSK_SOL_ITR, MSK_SOL_ITEM_XX, N+1, 2*N+1, aNode->nodeSoln);
-      } else if(PROBLEMCODE==3 || PROBLEMCODE==4) {
-	MSK_getsolutionslice(mtask, MSK_SOL_ITR, MSK_SOL_ITEM_XX, N+1, 2*N+1, aNode->nodeSoln);
-      }
-      MSK_getsolutionslice(mtask, MSK_SOL_ITR, MSK_SOL_ITEM_XX, 0, 2*N+1, aNode->mosekSoln);
-      
+     	if(PROBLEMCODE==1) {
+	  MSK_getsolutionslice(mtask, whichsol, MSK_SOL_ITEM_XX, 1, N+1, aNode->nodeSoln);
+	} else if(PROBLEMCODE==2) {
+	  MSK_getsolutionslice(mtask, whichsol, MSK_SOL_ITEM_XX, N+1, 2*N+1, aNode->nodeSoln);
+	} else if(PROBLEMCODE==3 || PROBLEMCODE==4) {
+	  MSK_getsolutionslice(mtask, whichsol, MSK_SOL_ITEM_XX, N+1, 2*N+1, aNode->nodeSoln);
+	}
+	MSK_getsolutionslice(mtask, whichsol, MSK_SOL_ITEM_XX, 0, 2*N+1, aNode->mosekSoln);
       // std::cout << primalobj << std::endl;
       printText(3, "Node (%d) Optimal Objective: %f", aNode->ID, aNode->nodeObj);
       break; 

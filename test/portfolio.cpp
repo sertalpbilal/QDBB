@@ -68,7 +68,7 @@ int createProblem(MSKtask_t* task, int argc, char* argv[]) {
       else { printf("Unknown Problem Type\n"); exit(0); }
     }
 
-    if(strcmp(tmp, "-d")==0) { // Data file
+    if(strcmp(tmp, "-d")==0 || strcmp(tmp, "-data")==0) { // Data file
       datafolder_ = argv[i+1];
     }
 
@@ -533,11 +533,13 @@ int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, in
 
       char txbuffer[80];
 
-      if(FILEOUTPUT)
+      if(FILEOUTPUT) {
 	sprintf(txbuffer, "result/afterCut%d.mps", asset);
-
-      if(FILEOUTPUT)
 	MSK_writedata(env, txbuffer);
+	sprintf(txbuffer, "result/afterCut%d.lp", asset);
+	MSK_writedata(env, txbuffer);
+      }
+
     
       delete[] rowindex;
       delete[] colindex;

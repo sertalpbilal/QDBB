@@ -60,7 +60,7 @@ int parseInfo(int argc, char* argv[]);
 int createNewNode(Node* parent, Node** newNode, int varID, double bound, int lower);
 int printTxt(int level, const char* fmt, ...);
 int selectNode(Node** activeNode);
-int solveLP(Node* aNode);
+int solveLP(Node* aNode, int relax);
 int isIntFeasible(Node* aNode);
 int branch(Node* activeNode);
 int cut(Node* activeNode);

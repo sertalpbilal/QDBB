@@ -29,7 +29,7 @@ problemsize = [20] # not yet implemented
 
 # custom problem set
 cps = []
-'''cps.append(['AA' ,20,400000, 0.05])
+cps.append(['AA' ,20,400000, 0.05])
 cps.append(['RD0',10,400000, 0.08])
 cps.append(['RD1',30,100000, 0.07])
 cps.append(['RD2',10,300000, 0.03])
@@ -40,14 +40,13 @@ cps.append(['RD6',10,600000, 0.02])
 cps.append(['RD7',10,1000000, 0.05])
 cps.append(['RD8',10,400000, 0.07])
 cps.append(['RD9',10,700000, 0.08])
-'''
-cps.append(['RD1',30,100000, 0.07])
 
-cardinality = [1,2,3,4,5]
+
+cardinality = [1,2,3,4,5] # [1,2,3,4,5]
 branch = [ 'mf' ] # , 'hc', 'bonami', 'hvar'] #, 'random']
 cut = ['hc'] # ['mf', 'hc', 'bonami', 'hvar'] #, 'random']
 search = ['breadth'] # [ 'df0', 'df1', 'best', 'breadth']
-cutiter = [1]
+cutiter = [1, 2]
 cutperiter = [1]
 cutlim = [5]
 mincutdepth = [0]
@@ -128,6 +127,12 @@ for(ds,ps,c,r) in cps:
         cl, ci, cp, cd, maxd = ps, 1, ps, 0, 0
         temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
         allproblems.append(temp)
+        # mosek
+        x = 10
+        index, ct, pinfo = index+1, 'mosek', 'mosek'
+        cl, ci, cp, cd, maxd = ps, 1, ps, 0, 0
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
+        allproblems.append(temp)
 
 '''
 
@@ -142,16 +147,17 @@ for(ds,ps,c,r) in cps:
         index, ct, pinfo = index+1, 'linear', ''
         temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
         allproblems.append(temp)
-        for cl in cutlim:
+        ''' for cl in cutlim:
             index, ct, x, pinfo = index+1, 'quadratic', 2, ''
             ci, cp = 1, 1
             temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
             allproblems.append(temp)
+        '''
         for cl in cutlim:
-            index, x, pinfo = index+1, 3, ''
+            index, x, pinfo, ct = index+1, 3, '', 'quadratic'
             temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
             allproblems.append(temp)
-        x = 1
+        '''x = 1
         for (cl,ci,cp,cd) in comb:
             index = index+1
             temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
@@ -161,7 +167,18 @@ for(ds,ps,c,r) in cps:
         cl, ci, cp, cd, maxd = ps, 1, ps, 0, 0
         temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
         allproblems.append(temp)
-
+        '''
+        # mosek
+        x = 10
+        index, ct, pinfo = index+1, 'mosek', 'mosek'
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
+        allproblems.append(temp)
+        # mosek-r
+        x = 11
+        index, ct, pinfo = index+1, 'mosekr', 'mosekr'
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
+        allproblems.append(temp)
+        
 # Problem 3 - Single Bound
 pname = 'single'
 for(ds,ps,c,r) in cps:
@@ -173,20 +190,33 @@ for(ds,ps,c,r) in cps:
         index, ct, pinfo = index+1, 'linear', ''
         temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
         allproblems.append(temp)
+        '''
         for cl in cutlim:
             index, ct, x, pinfo = index+1, 'quadratic', 2, ''
             ci, cp = 1, 1
             temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
             allproblems.append(temp)
+        '''
         for cl in cutlim:
-            index, x, pinfo = index+1, 3, ''
+            index, x, pinfo, ct = index+1, 3, '', 'quadratic'
             temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
             allproblems.append(temp)
-        x = 1
+        '''x = 1
         for (cl,ci,cp,cd) in comb:
             index = index+1
             temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity, pinfo)
             allproblems.append(temp)
+        '''
+        # mosek
+        x = 10
+        index, ct, pinfo = index+1, 'mosek', 'mosek'
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
+        allproblems.append(temp)
+        # mosek-r
+        x = 11
+        index, ct, pinfo = index+1, 'mosekr', 'mosekr'
+        temp = (index,pname,ds,ps,br,cu,sea,x,cl,ci,cp,cd,maxd,c,k,r,ct,f_,verbosity,pinfo)
+        allproblems.append(temp)
 
 # Problem 4 - Combined
 

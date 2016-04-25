@@ -16,6 +16,8 @@ extern string datafolder_;
 extern int FILEOUTPUT;
 extern int qa_;
 
+extern int cutRule_;
+
 /*  @short Creates the cardinality constrained portfolio optimization problem
  *  @param[in] task  Problem instance (MOSEK)
  *  @param[in] argv  User input at runtime
