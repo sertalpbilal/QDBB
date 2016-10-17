@@ -155,7 +155,7 @@ int createSingleCardinality(MSKtask_t* task)
     MSK_writedata(*task, "result/singleOriginal.mps");
   }
 
-  MSKrescodee a =MSK_toconic(*task);
+  MSK_toconic(*task);
     
   if(FILEOUTPUT) {
     MSK_writedata(*task, "result/singleOriginal2.mps");

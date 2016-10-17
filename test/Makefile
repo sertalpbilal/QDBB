@@ -10,7 +10,7 @@ LIBS=-L$(PACKAGE)/mosek/7/tools/platform/linux64x86/bin \
   -lmosek64 \
   -lblas -llapack
 
-CFLAGS=-ggdb -Wall -Wno-unused-value -g -O0  -Wl,-rpath-link=$(PACKAGE)/mosek/7/tools/platform/linux64x86/bin
+CFLAGS=-ggdb -Wall -Wunused-variable -g -O0  -Wl,-rpath-link=$(PACKAGE)/mosek/7/tools/platform/linux64x86/bin
 
 
 DEBUG=0

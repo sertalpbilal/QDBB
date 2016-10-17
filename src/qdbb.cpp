@@ -960,6 +960,9 @@ int solveLP(Node* aNode, int relax) {
     MSK_putdouparam(mtask, MSK_DPAR_INTPNT_TOL_DFEAS, 1e-16);
     MSK_putdouparam(mtask, MSK_DPAR_INTPNT_NL_TOL_DFEAS, 1e-16);
     MSK_putdouparam(mtask, MSK_DPAR_INTPNT_NL_TOL_PFEAS, 1e-16);
+    if(aNode->ID == 0) {
+      //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
+    }
   }
   else {
     char funame[80];
@@ -968,7 +971,13 @@ int solveLP(Node* aNode, int relax) {
     MSK_readdata (mtask, funame);
     MSK_putintparam(mtask, MSK_IPAR_MIO_MODE, MSK_MIO_MODE_SATISFIED);
     MSK_putintparam(mtask, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_FREE);
-    MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
+    double dtol = 1e-6;
+    MSK_putdouparam(mtask, MSK_DPAR_MIO_NEAR_TOL_ABS_GAP, dtol);
+    MSK_putdouparam(mtask, MSK_DPAR_MIO_TOL_ABS_GAP, dtol);
+    MSK_putdouparam(mtask, MSK_DPAR_MIO_TOL_ABS_RELAX_INT,dtol);
+    MSK_putdouparam(mtask, MSK_DPAR_MIO_TOL_FEAS, dtol);
+    MSK_putdouparam(mtask, MSK_DPAR_MIO_TOL_REL_RELAX_INT, dtol);
+    //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
   }
   
   //MSK_putintparam(mtask, MSK_IPAR_NUM_THREADS, 1);
