@@ -741,7 +741,8 @@ int selectNode(Node** activeNode) {
     *activeNode = nodeList_[0];
     double bestbound = nodeList_[0]->lowerBound;
     for(unsigned int i=1; i < nodeList_.size(); i++) {
-      if(nodeList_[i]->lowerBound > bestbound && nodeList_[i]->lowerBound < redline) {
+      if(nodeList_[i]->lowerBound < bestbound && nodeList_[i]->lowerBound < redline) {
+ 	//printText(0,"    Better bound, node[%d] = %f < %f",i,nodeList_[i]->lowerBound,bestbound);
 	selected = i;
 	*activeNode = nodeList_[i];
 	bestbound = nodeList_[i]->lowerBound;
@@ -987,8 +988,12 @@ int solveLP(Node* aNode, int relax) {
   //solutionpoint:
  
   MSKrescodee trmcode;
-  MSKrescodee r; 
+  MSKrescodee r;
+  clock_t mosek_start = clock();
   r = MSK_optimizetrm(mtask,&trmcode);
+  clock_t mosek_finish = clock();
+  double elapsed = double(mosek_finish-mosek_start) / CLOCKS_PER_SEC;
+  printText(6,"Rel. sol time %.3e",elapsed);
   printText(6,"Problem is solved with  MOSEK");
   r = r;
   MSK_solutionsummary(mtask,MSK_STREAM_LOG);
@@ -1178,6 +1183,44 @@ int printToFile(Node* aNode) {
 
   return 1;
   
+}
+
+/**
+ * @short Solves primal and dual rounding problems and returns solution
+ * @param[in] aNode  Node whose rounding will be solved
+ * @return Success code (0) or Failure (1)
+ */
+int solveRounding(Node* aNode) {
+  
+  // Step 0: Initialize memory and variables
+  
+  // Step 1: Grab cone structure, optimal solution  and find conic classes
+  
+  // Step 2: Get eigenvectors
+  
+  // Step 3: Solve primal rounding problem
+  
+  // Step 4: Solve dual rounding problem
+  
+  // Step 5: Convert results back into original space
+  
+  
+  // Return success code!
+  return 0;
+  
+}
+
+/**
+ * @short Detects structures in a given conic solution
+ * @param[in] aNode  Subject to change
+ * @return Success code (0) or Failure (1)
+ */
+int getConicClasses(Node* aNode) {
+
+
+
+
+  return 0;
 }
 
 

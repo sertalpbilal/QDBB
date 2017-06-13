@@ -75,4 +75,10 @@ int finishBB();
 int deleteNode(Node* aNode);
 int printToFile(Node* aNode);
 
+/* @short Solves primal and dual rounding problems and returns results */
+int solveRounding(Node* aNode);
+
+/* @short Detects structures of a given conic solution */
+int getConicClasses(Node* aNode);
+
 #endif
