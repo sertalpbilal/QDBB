@@ -212,8 +212,12 @@ int createRoundlot(MSKtask_t* task)
   
   MSK_putqconk(*task, 0, (N+1)*N/2, rowindex, colindex, valindex);
   if(FILEOUTPUT) {
-    MSK_writedata(*task, "result/RoundlotOriginal.mps");
-    MSK_writedata(*task, "result/RoundlotOriginal.lp");
+    char tbuffer[120];
+    //MSK_writedata(*task, "result/RoundlotOriginal.mps");
+    sprintf(tbuffer, "result/roundlot_n%2d_d%s.mps", N, datafolder_.c_str()); 
+    //MSK_writedata(*task, "result/Roundlot_n" + N + "_d" + datafolder_.c_str() + ".mps");
+    //MSK_writedata(*task, "result/RoundlotOriginal.lp");
+    MSK_writedata(*task, tbuffer);
   }
   string solver("MOSEK");
   

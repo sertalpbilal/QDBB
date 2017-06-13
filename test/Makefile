@@ -87,5 +87,36 @@ clean:
 	#rm -rf $(SRCDIR)/*.o $(SRCDIR)/*~ 
 
 
+# options for 'portfolio'
+# Format:
+# -option -alternative info (values,default*)
+#
+# Mandatory:
+#  -type -t Problem type     (roundlot, cardinality, single, diverse, combined)
+#  -data -d Data set         (AA,RD0-RD9)
+#  -v    -a Number of assets
+#  -C       Capital
+#  -r       Return rate
+#  -k       Cardinality
+#  -qa      Cardinality(quad)
+#  -ct      Card. type       (quadratic*,linear)
+#  
+# Optional:
+#  -o         Output verbosity (1-6,1*)
+#  -f         File output      (0*,1)
+#  -b         Branching rule   (mf*,hc,random,bonami,hvar)
+#  -c         Cut rule         (mf,hc*,random,bonami,hvar)
+#  -s         Search rule      (df0,df1*,breadth,best)
+#  -l         Cut limit        (0-1000,100*)
+#  -i         Cut gen. iter    (0-100,1*)
+#  -p         Cut per iter     (0-100,3*)
+#  -x         Cut strategy     (0 [BB], 1 [BCC-F], 2* [BCC-I], 3 [BCC-R], 4 [BCC-D], 10 [MOSEK], 11 [MOSEK-R])
+#  -mind      Min cut depth    (0-100,0*)
+#  -maxd      Max cut depth    (0-100,100*)
+#  -dct       Deep cut thresh  (0-1,0*)
+#  -timelimit Time limit       (0-1000,1000*)
+
+
+
 
 
