@@ -1,0 +1,15 @@
+cd /home/sec312/package/qdbb/test
+echo PID ${PID}
+echo D ${D}
+echo A ${A}
+echo T ${T}
+echo X ${X}
+echo B ${B}
+echo C ${C}
+echo S ${S}
+echo CP ${CP}
+echo R ${R}
+echo L ${L}
+echo I ${I}
+echo P ${P}
+./portfolio -d ${D} -a ${A} -t ${T} -x ${X} -b ${B} -c ${C} -s ${S} -C ${CP} -r ${R} -l ${L} -i ${I} -p ${P}

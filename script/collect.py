@@ -29,9 +29,11 @@ for efile in sorted(files):
     found = 0
     exp = []
     node_id = efile.split('.')[1].lstrip("0")
-    exp.append(node_id)
+    #exp.append(node_id)
     for line in ofile:
         words = line.split()
+        if "PID" in line:
+            exp.append(words[1])
         if "Optimal value:" in line:
             exp.append(words[3])
         if "Total time elapsed:" in line:
@@ -79,11 +81,15 @@ for efile in sorted(files):
 #title = ['ID', 'Filename','\tNProc','NGen','SOCO S','Time       ','Cuts G','Cuts Ap','Total Impr.','Best Impr.', 'Objective','Node Chg','Time Chg','Time/SOCO']
 #result.insert(0, title)
 
+print('ID Dataset Asset P.Type CutMethod Branching Cutting Searching Capital Return Limit Iter CutPerIter ID2 Filename NProc NGen SOCOsolved Time CutsGen CutsApp TotalImp BestImp Objective')
+
 i = 0
 if(status_format != 1):
     for ex in result:
         #print ' '.join(ex)
         mex = ' '.join(ex)
+        while(not ex[0] in expfile[i].split(' ', 1)[0]):
+            i = i+1
         print(expfile[i][:-1]),
         print mex
         i = i+1
