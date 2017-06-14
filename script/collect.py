@@ -16,13 +16,14 @@ if(len(sys.argv) >= 2):
 lead_node = 0
 lead_time = 0
 # outer loop: for all files in system
-directory = '../test/portfolio-output/'
+#directory = '../test/portfolio-output/'
+directory = 'output/'
 files = os.listdir(directory)
 expfile = open('exp.txt','r').readlines()
 
 totalsolved = 0
 for efile in sorted(files):
-    if ".txt" not in efile:
+    if "pbs.o" not in efile: #".txt" not in efile:
         continue
     ofile = open(directory + efile, 'r')
     found = 0
@@ -54,6 +55,7 @@ for efile in sorted(files):
             totalsolved += 1
             exp.append(efile)
     if found:
+        '''
         if "leader" in expfile[int(node_id)]:
             exp.append("leader")
             lead_node = exp[2]
@@ -67,19 +69,26 @@ for efile in sorted(files):
             exp.append(time_imp)
         time_per_soco = "%.6f" % (float(exp[5])/float(exp[4]))
         exp.append(time_per_soco)
+        '''
+        disabled_for_now = 1
     if( summary_format == 0 or (summary_format == 1 and found ==1 )):
             result.append(exp)
     ofile.close()
 
 #titles = []
-title = ['ID', 'Filename','NProc','NGen','SOCO S','Time       ','Cuts G','Cuts Ap','Total Impr.','Best Impr.', 'Objective','Node Chg','Time Chg','Time/SOCO']
-result.insert(0, title)
+#title = ['ID', 'Filename','\tNProc','NGen','SOCO S','Time       ','Cuts G','Cuts Ap','Total Impr.','Best Impr.', 'Objective','Node Chg','Time Chg','Time/SOCO']
+#result.insert(0, title)
 
+i = 0
 if(status_format != 1):
     for ex in result:
-        print '\t'.join(ex)
+        #print ' '.join(ex)
+        mex = ' '.join(ex)
+        print(expfile[i][:-1]),
+        print mex
+        i = i+1
 
-print str(totalsolved) + ' out of ' + str(len(files)-1) + ' experiments are completed.'
+#print str(totalsolved) + ' out of ' + str(len(files)-1) + ' experiments are completed.'
 
 #for a in range(1,20):
 #    print '%02d' %(a)
