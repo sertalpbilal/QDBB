@@ -1,5 +1,5 @@
 // Single.cpp is a part of QDBB Portfolio test problems
-// It have the DCC for single cardinality constraint, i.e. x_i^2 <= z_i
+// DCC for single cardinality constraint, i.e. x_i^2 <= z_i
 
 #include "portfolio.h"
 

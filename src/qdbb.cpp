@@ -43,7 +43,7 @@ int totalFadingCuts_ = 0;
 int totalNodeFadingCuts_ = 0;
 int bestNodeNumber_ = 0;
 double objectiveTolerance_ = 1e-3;
-double integerTolerance_ = 1e-5;
+double integerTolerance_ = 1e-8;//1e-5;
 double timeLimit_ = 1000;
 int terminationReason_ = 0;
 int numVars_ = 0;
@@ -462,13 +462,13 @@ summary_report:
   printText(2, "Values: ");
   for(int i=0; i<N; i++) {
     if(bestSoln_[i] < integerTolerance_) {
-      printText(3, "  %2d: %.12f\t%.8f", (i+1), bestSoln_[i], bestNode->mosekSoln[i+1]);
+      printText(3, "  %2d: %.6e\t%.6e", (i+1), bestSoln_[i], bestNode->mosekSoln[i+1]);
     } else {
-      printText(2, "  %2d: %.12f\t%.8f", (i+1), bestSoln_[i], bestNode->mosekSoln[i+1]);
+      printText(2, "  %2d: %.6e\t%.6e", (i+1), bestSoln_[i], bestNode->mosekSoln[i+1]);
     }
   }
   for(int i=0; i<2*N+1; i++) {
-    //printf("Var[%d]:\t%.6f\n", i, bestNode->mosekSoln[i+1]);
+    printText(7,"MOSEK Var[%d]:\t%.6f", i, bestNode->mosekSoln[i+1]);
   }
   printText(1, "Number of nodes processed: %d", nodesProcessed_);
   printText(1, "Number of nodes generated: %d", totalNodes_);
@@ -844,6 +844,19 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
       1,                  //MSKint32t    finite, 
       bound               //MSKrealt     value); 
       );
+
+      if(PROBLEMCODE==3) { // HOTFIX FOR SINGLE BOUND CONSTRAINTS DUE TO ERRORS
+	if(lower==0) {
+	  MSK_chgbound ( 
+			newProblem,         //MSKtask_t    task, 
+			MSK_ACC_VAR,        //MSKaccmodee  accmode, 
+			varID+1,            //MSKint32t    i, 
+			lower,              //MSKint32t    lower, 
+			1,                  //MSKint32t    finite, 
+			bound               //MSKrealt     value); 
+			 );
+	}
+      }
       
       //MSK_putbound(newProblem, MSK_ACC_VAR, varID+corrector+1, bk, lbound, ubound); -- DO NOT USE THIS ONE
       MSK_getvarbound ( 
@@ -941,6 +954,8 @@ int solveLP(Node* aNode, int relax) {
 
   
   if(relax==1) {
+
+    
     MSK_putintparam(mtask, MSK_IPAR_MIO_MODE, MSK_MIO_MODE_IGNORED); // make it LP
     MSK_putintparam(mtask, MSK_IPAR_INTPNT_REGULARIZATION_USE, MSK_OFF);
     MSK_putintparam(mtask, MSK_IPAR_INTPNT_SCALING, MSK_SCALING_NONE);
@@ -980,7 +995,13 @@ int solveLP(Node* aNode, int relax) {
     MSK_putdouparam(mtask, MSK_DPAR_MIO_TOL_REL_RELAX_INT, dtol);
     //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
   }
-  
+
+      // MOSEK PRECISION
+  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_PFEAS, 1e-16);
+  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_DFEAS, 1e-16);
+  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_REL_GAP, 1e-16);
+  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_TOL_INFEAS, 1e-16);
+  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_MU_RED, 1e-16);
   //MSK_putintparam(mtask, MSK_IPAR_NUM_THREADS, 1);
   
 
@@ -1110,7 +1131,7 @@ int isIntFeasible(Node* aNode) {
       intfeasible = false;
       printText(5,"Integer infeasibility at variable %d, value: %f",i, aNode->nodeSoln[i]);
     }
-    printText(6,"Proximity to integer (%d): %.6f, value: %.6f",i+1,fabs(round(aNode->nodeSoln[i])-aNode->nodeSoln[i]), aNode->nodeSoln[i]);
+    printText(6,"Proximity to integer (%d - asset %d -): %.6f, value: %.6f",i,i+1,fabs(round(aNode->nodeSoln[i])-aNode->nodeSoln[i]), aNode->nodeSoln[i]);
   }
   
   aNode->intfeasible = intfeasible;
