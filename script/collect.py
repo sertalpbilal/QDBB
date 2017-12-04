@@ -23,7 +23,7 @@ expfile = open('exp.txt','r').readlines()
 
 totalsolved = 0
 for efile in sorted(files):
-    if "pbs.o" not in efile: #".txt" not in efile:
+    if ".o" not in efile: #".txt" not in efile:
         continue
     ofile = open(directory + efile, 'r')
     found = 0
@@ -55,7 +55,7 @@ for efile in sorted(files):
         if "SUMMARY" in line:
             found = 1
             totalsolved += 1
-            exp.append(efile)
+            # exp.append(efile)
     if found:
         '''
         if "leader" in expfile[int(node_id)]:
@@ -88,13 +88,24 @@ if(status_format != 1):
     for ex in result:
         #print ' '.join(ex)
         mex = ' '.join(ex)
-        while(not ex[0] in expfile[i].split(' ', 1)[0]):
+        #print(mex)
+        try:
+            #print('Ex: {}'.format(ex[0]))
+            #print('Exp: {}'.format(expfile[i].split(' ', 1)[0]))
+            #while(not ex[0] in expfile[i].split(' ', 1)[0]):
+            #    i = i+1
+            print expfile[i][:-1],
+            print mex
             i = i+1
-        print(expfile[i][:-1]),
-        print mex
-        i = i+1
+        except IndexError:
+            print('IndexError')
+            continue
 
-#print str(totalsolved) + ' out of ' + str(len(files)-1) + ' experiments are completed.'
+for i in result:
+    #print(i)
+    a=2
+    
+# print str(totalsolved) + ' out of ' + str(len(files)-1) + ' experiments are completed.'
 
 #for a in range(1,20):
 #    print '%02d' %(a)

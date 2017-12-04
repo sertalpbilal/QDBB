@@ -25,6 +25,7 @@ double C_;
 int k_;
 int qa_;
 int cardinaltype_ = 1;
+int objtype_ = 0;
 extern double integerTolerance_;
 extern double deepCutThreshold_;
 
@@ -95,6 +96,10 @@ int createProblem(MSKtask_t* task, int argc, char* argv[]) {
       else if(strcmp(argv[i+1],"linear")==0) {
 	cardinaltype_ = 0;
       }
+    }
+
+    if(strcmp(tmp, "-obj")==0) { // objective type - variation number
+      objtype_ = atoi(argv[i+1]);
     }
 
   }

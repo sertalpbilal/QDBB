@@ -6,13 +6,13 @@
 int OUTLEV = 1;
 int FILEOUTPUT = 0;
 
-#define printText(flag, ...) if (flag <= OUTLEV) { printf("%d:%*s",flag,2*flag,""); printf(__VA_ARGS__); printf("\n"); }
+#define printText(flag, ...) if (flag <= OUTLEV) { printf("%d:%*s",flag,2*flag,""); printf(__VA_ARGS__); printf("\n"); fflush(stdout); }
 
-static void MSKAPI printstr(void *handle,
-			    MSKCONST char str[])
-{
-  printf("%s",str);
-}
+//static void MSKAPI printstr(void *handle,
+//			    MSKCONST char str[])
+//{
+//  printf("%s",str);
+//}
 
 
 MSKtask_t oProblem = NULL; // Original problem instance
@@ -42,9 +42,9 @@ int totalSocoSolved_ = 0;
 int totalFadingCuts_ = 0;
 int totalNodeFadingCuts_ = 0;
 int bestNodeNumber_ = 0;
-double objectiveTolerance_ = 1e-3;
+double objectiveTolerance_ = 1e-4; //1e-3;
 double integerTolerance_ = 1e-8;//1e-5;
-double timeLimit_ = 1000;
+double timeLimit_ = 14400;
 int terminationReason_ = 0;
 int numVars_ = 0;
 int N = 0; /* number of assets, always 1 less than numVars */
@@ -284,28 +284,37 @@ int startBB(int argc, char* argv[]) {
           }
         }
         else if(cutRule_ == 2) { // Fading Cuts, -x 2
-          double prevObjective = activeNode->nodeObj + 2*objectiveTolerance_;
-          double newObjective = activeNode->nodeObj;
+          double prevObjective = 0; //activeNode->nodeObj - 2*objectiveTolerance_;
+          double newObjective = 1; //activeNode->nodeObj;
           totalNodeFadingCuts_++;
 	  int fadingIter = 0;
-          while(newObjective <= prevObjective - objectiveTolerance_ && fadingIter < controlValve ) {
+          while(newObjective >= prevObjective + objectiveTolerance_ && fadingIter < controlValve ) {
+	    prevObjective = activeNode->nodeObj;
             if(activeNode->totalCuts < cutLimit_) {
               int isNewCut = cut(activeNode);
-              totalFadingCuts_ += isNewCut;
+	      totalFadingCuts_ += isNewCut;
               activeNode->totalCuts += isNewCut;
               totalCutsGenerated_ ++;
               totalCutsApplied_ += isNewCut;
             } else {
 	      //printf("Tots: %d, cut lim: %d\n",activeNode->totalCuts,cutLimit_);
-              printText(6, "Cut limit reached for node %d",activeNode->ID);
+              printText(5, "Cut limit reached for node %d",activeNode->ID);
               break;
             }
+	    printText(4, "Mid-loop");
             solveLP(activeNode,1);
-            totalSocoSolved_++;
-	    if(!activeNode->feasible) { break; }
-            prevObjective = newObjective;
             newObjective = activeNode -> nodeObj;
-	    fadingIter++;
+	    totalSocoSolved_++;
+	    if(!activeNode->feasible) { break; }
+            fadingIter++;
+	    printText(6, "Diff in objectives: %.5e", newObjective-prevObjective);
+	    printText(6, "Iteration: %d / %d", fadingIter, controlValve);
+	    double objChange = newObjective-prevObjective;
+	    totalImprovement_ += objChange;
+	    if (objChange > bestImprovement_) {
+	      bestImprovement_ = objChange;
+	    }
+	    
           }
         } 
         else if(cutRule_ == 5) { // all cuts at root node!   -x 3
@@ -343,14 +352,30 @@ int startBB(int argc, char* argv[]) {
 	  iterN = 0;
 	  while(iterN < iterationLimit_) {
             printText(4, "Node (%d) cut iteration %d of %d", activeNode->ID, iterN+1, iterationLimit_);
-            if(activeNode->totalCuts < cutLimit_) {
-	      int isNewCut = cut(activeNode); // could be more than 1
+	    int isNewCut = 0;
+	    if(activeNode->totalCuts < cutLimit_) {
+	      isNewCut = cut(activeNode); // could be more than 1
               activeNode->totalCuts += isNewCut;
               totalCutsApplied_ += isNewCut;
               totalCutsGenerated_ += N;
               totalCut += N;
 	    }
+	    else {
+	      printText(4, "Cut limit is reached for node, terminating...");
+	      break;
+	    }
+	    if (isNewCut == 0) {
+	      printText(4, "No improvement after cut, terminating...");
+	      break;
+	    }
+	    double prevObj = activeNode->nodeObj;
             solveLP(activeNode,1);
+	    double newObj = activeNode->nodeObj;
+	    double objChange = newObj - prevObj;
+	    totalImprovement_ += objChange;
+	    if (objChange > bestImprovement_) {
+	      bestImprovement_ = objChange;
+	    }
 	    totalSocoSolved_++;
             iterN++;
           }
@@ -634,6 +659,9 @@ int cut(Node* activeNode) {
       } else {
 	printText(3, "Node (%d) Cut generation failed, variable %d, value: %f", activeNode->ID, variableForCut, activeNode->nodeSoln[variableForCut]);
       }
+    }
+    else {
+      printText(3,"No cuts can be added, all integer cuts are active for current values...");
     }
   }
   else if(cutRule_ == 6) { // Generate all possible cuts (N) and order them by violation, add top -p of them if possible
@@ -952,6 +980,7 @@ int solveLP(Node* aNode, int relax) {
   //MSK_clonetask(originaltask, &mtask);
   mtask = originaltask;
 
+  MSK_putintparam(mtask, MSK_IPAR_NUM_THREADS, 1);
   
   if(relax==1) {
 
