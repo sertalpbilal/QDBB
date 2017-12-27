@@ -2,16 +2,20 @@
 # This file gathers the results from test folder and put them into table
 
 import os, os.path, sys, pdb
+import string
 
 result = []
 
 status_format  = 0
 summary_format = 0
+no_cmd = 0
 if(len(sys.argv) >= 2):
     if("summary" in sys.argv[1]):
         summary_format = 1
     if("status" in sys.argv[1]):
         status_format = 1
+    if("no-cmd" in sys.argv[1]):
+        no_cmd = 1
 
 lead_node = 0
 lead_time = 0
@@ -32,6 +36,12 @@ for efile in sorted(files):
     #exp.append(node_id)
     for line in ofile:
         words = line.split()
+        if "./portfolio" in line and no_cmd == 0:
+            #runcmd = line
+            runcmd = string.replace(line,'\n','')
+            runcmd = string.replace(runcmd,'\r','')
+            runcmd = string.replace(runcmd,' ','~')
+            exp.append(runcmd)
         if "PID" in line:
             exp.append(words[1])
         if "Optimal value:" in line:
@@ -81,7 +91,7 @@ for efile in sorted(files):
 #title = ['ID', 'Filename','\tNProc','NGen','SOCO S','Time       ','Cuts G','Cuts Ap','Total Impr.','Best Impr.', 'Objective','Node Chg','Time Chg','Time/SOCO']
 #result.insert(0, title)
 
-print('ID Dataset Asset P.Type CutMethod Branching Cutting Searching Capital Return Limit Iter CutPerIter ID2 Filename NProc NGen SOCOsolved Time CutsGen CutsApp TotalImp BestImp Objective')
+print('ID Dataset Asset P.Type CutMethod Branching Cutting Searching Capital Return Risk Limit Iter CutPerIter ObjType Filename ID2 Cmd NProc NGen SOCOsolved Time CutsGen CutsApp TotalImp BestImp Objective')
 
 i = 0
 if(status_format != 1):

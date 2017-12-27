@@ -179,8 +179,14 @@ int createCardinality(MSKtask_t* task)
     MSK_writedata(*task, "result/CardinalityOriginal.mps");
   //MSK_writedata(*task, "CardinalityOriginal.lp");
 
-  if(qa_ == N_)
-    MSK_toconic (*task);
+  if(qa_ == N_) {
+    char symname[100];
+    char mystr[100];
+    MSKrescodee myres = MSK_toconic (*task);
+    MSK_getcodedesc (myres, symname, mystr); 
+    printf("Return: %s\n", mystr);
+  }
+    
   
   if(FILEOUTPUT)
     MSK_writedata(*task, "result/CardinalityOriginal2.mps");

@@ -55,7 +55,7 @@ int createProblem(MSKtask_t* originalProblem, int argc, char* argv[]); // In pro
 
 // This function should be defined by user
 int deleteProblem();                                         // In problem-specific file
-
+int postSolve(double* soln);
 int parseInfo(int argc, char* argv[]);
 int createNewNode(Node* parent, Node** newNode, int varID, double bound, int lower);
 int printTxt(int level, const char* fmt, ...);

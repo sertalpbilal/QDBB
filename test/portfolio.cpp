@@ -21,6 +21,7 @@ string datafolder_;
 // Problem params
 int N_;
 double Rt_;
+double risk_;
 double C_;
 int k_;
 int qa_;
@@ -77,8 +78,11 @@ int createProblem(MSKtask_t* task, int argc, char* argv[]) {
       N_ = atoi(argv[i+1]);
     }
 
-    if(strcmp(tmp, "-r")==0) // return 
+    if(strcmp(tmp, "-r")==0) // return OR risk bound (either m'z<=r, or z'Qz<=r)
       Rt_ = atof(argv[i+1]);
+
+    if(strcmp(tmp, "-risk")==0)
+      risk_ = atof(argv[i+1]);
 
     if(strcmp(tmp, "-C")==0) // capital
       C_ = atof(argv[i+1]);
@@ -98,7 +102,7 @@ int createProblem(MSKtask_t* task, int argc, char* argv[]) {
       }
     }
 
-    if(strcmp(tmp, "-obj")==0) { // objective type - variation number
+    if(strcmp(tmp, "-objtype")==0 || strcmp(tmp, "-ot")==0) { // objective type - variation number
       objtype_ = atoi(argv[i+1]);
     }
 
@@ -131,6 +135,16 @@ int createProblem(MSKtask_t* task, int argc, char* argv[]) {
   }
   return 1;
   
+}
+
+int postSolve(double* soln) {
+
+  if(PROBLEMCODE==1) {
+    postSolveRoundlot(soln);
+  }
+
+  return 0;
+
 }
 
 int deleteProblem() {
@@ -329,7 +343,14 @@ int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, in
   
   char tbuffer[80];
 
-  sprintf(tbuffer, "result/beforeCut%d.mps", asset);
+  if(FILEOUTPUT) {
+    sprintf(tbuffer, "result/beforeCut%d.mps", asset);
+    MSK_writedata(env, tbuffer);
+    sprintf(tbuffer, "result/beforeCut%d.lp", asset);
+    MSK_writedata(env, tbuffer);
+  }
+
+
   
   //MSK_writedata(env, "beforeCut.lp");
   
@@ -456,7 +477,7 @@ int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, in
       }
       *cdepth = tvalue+newro+0;
       //std::cout << "Value is : " << tvalue << ", rho is : " << -newro << std::endl;
-      if((tvalue+newro)*100/nodeObj < deepCutThreshold_) { // TODO Make this a parameter
+      if((tvalue+newro)*100/fabs(nodeObj) < deepCutThreshold_) { // TODO Make this a parameter
         response = 0;
         free(mysolnxx);
         
@@ -606,9 +627,12 @@ int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, in
     }
     */
 
+
+    printText(4,"Trying to add cut for %d, qa/N: %d / %d, k: %d", asset,qa_, N, k);
     if(qa_==N) {
       long double kd = k + 0.0;
       long double tau = ( sqrt(1-(1/kd))  - 1 ) * 2 * kd;
+      printText(5,"Tau: %Le", tau);
       //tau = 0;
       //printf("\ntau: %Lf, k: %d\n",tau, k);
       long double cutDepth = 0;
@@ -616,19 +640,24 @@ int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, in
       int* zcolindex = new int[N];
       double*  zvalindex = new double[N];
       for(int i=0; i<N; i++){zrowindex[i]=0; zcolindex[i]=0; zvalindex[i]=0.0;}
+      //printf("Constraint: ");
       int zbusindex = 0;
       for(int i=1; i<=N; i++) {
+	//printf("x[%d]: %e\n",i,currSoln[i-1]);
 	zrowindex[zbusindex]=N+i;
 	zcolindex[zbusindex]=N+i;
 	if(i==asset) {
+	  //printf("+ %Le * x_%d * x_%d\n", 1+1*tau+0.0, i, i);
 	  //printf("\n asset: %d\n",asset);
 	  zvalindex[zbusindex]=2+2*tau+0.0;
 	} else {
+	  //printf("+ %d * x_%d * x_%d\n", 1, i, i);
 	  zvalindex[zbusindex]=2;
 	}
 	cutDepth += zvalindex[zbusindex]*currSoln[i-1]*currSoln[i-1];
 	zbusindex++;
       }
+      //printf("- %Le * x_%d <= %d\n", tau, asset, k);
 
       // Linear to cutdepth
       cutDepth = cutDepth / 2;
@@ -636,6 +665,7 @@ int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, in
       cutDepth -= kd;
     
       *cdepth = cutDepth;
+      printText(4,"Cut depth: %Le", cutDepth);
     /*std::cout << "Cut depth: " << cutDepth << std::endl;
 
     for(int i=0; i<N; i++) {
@@ -646,26 +676,38 @@ int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, in
     }
     std::cout << "a_N " << (-tau) << std::endl; */
 
-      if(cutDepth>0 && addToProblem == 1) {
+      if(addToProblem == 1) { // Cut depth is not important here...
 
+	MSKrescodee myres;
+	myres = MSK_toconic(env);
+	char symname[120];
+	char mystr[120];
+	MSK_getcodedesc (myres, symname, mystr); 
+	printf("Return: %s\n", mystr);
+
+	
 	status = 1;
 	int cutidx;
 	MSK_getnumcon(env,&cutidx);
 	MSK_appendcons(env,1);
 	MSK_putqconk(env, cutidx, N, zrowindex, zcolindex, zvalindex);
-	MSK_putaij(env, cutidx, N+asset, - 0.5*tau);
-	MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, k); 
-	MSK_toconic(env);
+	MSK_putaij(env, cutidx, N+asset, - tau);
+	MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, k);
+	myres = MSK_toconic(env);
+	MSK_getcodedesc (myres, symname, mystr); 
+	printf("Return: %s\n", mystr);
 
 	*cutIndex = cutidx;
 
 	char txbuffer[80];
+	char txbuffer2[80];
 	
-	if(FILEOUTPUT)
+	if(FILEOUTPUT) {
 	  sprintf(txbuffer, "result/afterCut%d.mps", asset);
-      
-	if(FILEOUTPUT)
 	  MSK_writedata(env, txbuffer);
+	  sprintf(txbuffer2, "result/afterCut%d.lp", asset);
+	  MSK_writedata(env, txbuffer2);
+	}
       }
     }
     else if(qa_ < N) { // CYLINDRICAL CUT CASE

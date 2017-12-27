@@ -32,6 +32,7 @@ int deleteCardinality();
 int deleteSingleCardinality();
 int deleteDiverse();
 int deleteCombined();
+int postSolveRoundlot(double* soln);
 
 #endif
 

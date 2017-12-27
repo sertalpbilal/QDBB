@@ -42,8 +42,9 @@ int totalSocoSolved_ = 0;
 int totalFadingCuts_ = 0;
 int totalNodeFadingCuts_ = 0;
 int bestNodeNumber_ = 0;
+int dryRun_ = 0;
 double objectiveTolerance_ = 1e-4; //1e-3;
-double integerTolerance_ = 1e-8;//1e-5;
+double integerTolerance_ = 1e-5;//1e-5;
 double timeLimit_ = 14400;
 int terminationReason_ = 0;
 int numVars_ = 0;
@@ -57,6 +58,7 @@ std::vector<long double*> cutImprovements_;
 long double cdepth_; // depth of latest cyt
 int cvariable_; // variable that cut is generated on
 double cvarvalue_; // value of the variable at the time cut is generated
+double branchingVarValue_ = 0;
 
 extern int PROBLEMCODE;
 extern double* mu;
@@ -80,14 +82,14 @@ int main(int argc, char* argv[]) {
   oProblem = task;
 
   parseInfo(argc,argv);
-  
+
   startBB(argc, argv);
   
   finishBB();
   
   //MSK_deletetask (&task); 
   MSK_deleteenv (&env);
-  
+
   return 1;
 }
 
@@ -148,6 +150,8 @@ int parseInfo(int argc, char* argv[]) {
 	searchRule_ = 2;
       else if(strcmp(argv[i+1], "best")==0) // best lower bound
 	searchRule_ = 3;
+      else if(strcmp(argv[i+1], "dfc")==0) // Depth first - closest
+	searchRule_ = 4;
     }
 
     if(strcmp(tmp, "-l")==0) // cut limit
@@ -186,6 +190,9 @@ int parseInfo(int argc, char* argv[]) {
 
     if(strcmp(tmp, "-timelimit")==0 || strcmp(tmp, "-tl")==0) // Time limit
       timeLimit_ = atof(argv[i+1]);
+
+    if(strcmp(tmp, "-dryrun") == 0 || strcmp(tmp, "-dr")==0)
+      dryRun_ = atoi(argv[i+1]);
     
   }
 
@@ -195,8 +202,16 @@ int parseInfo(int argc, char* argv[]) {
 }
 
 int startBB(int argc, char* argv[]) {
+
+
+  
   int status = 0;
   createProblem(&oProblem, argc, argv);
+
+  if(PROBLEMCODE==2) {
+    integerTolerance_ = 1e-4;
+  }
+
   
   root = new Node; //(Node *) malloc(sizeof(Node));
   createNewNode(0, &root, -1 /*var id*/, 0 /* bound */, 0 /* lower */);
@@ -220,6 +235,11 @@ int startBB(int argc, char* argv[]) {
     double elapsed = double(current-begin) / CLOCKS_PER_SEC;
     if(elapsed > timeLimit_) { terminationReason_ = 2; goto summary_report; }
     selectNode(&activeNode);
+    if (dryRun_==1) {
+      printText(1, "Dry run, printing root node to file...");
+      printToFile(activeNode);
+      goto summary_report;
+    }
     if(!activeNode->eliminated) {
       printText(4, "Processing the node now...");
       activeNode->processed = true;
@@ -432,7 +452,7 @@ int startBB(int argc, char* argv[]) {
     
     if( activeNode->feasible) { isIntFeasible(activeNode); }
 
-finaldecision:
+  finaldecision:
 
     if( activeNode->feasible && activeNode->intfeasible) { // better objective function
       if(activeNode->nodeObj < globalUpperBound_) {
@@ -467,7 +487,7 @@ finaldecision:
     
   }
 
-summary_report:  
+ summary_report:  
   clock_t end = clock();
   double elapsed = double(end-begin) / CLOCKS_PER_SEC;
 
@@ -492,6 +512,22 @@ summary_report:
       printText(2, "  %2d: %.6e\t%.6e", (i+1), bestSoln_[i], bestNode->mosekSoln[i+1]);
     }
   }
+  // RISK and RETURN values for portfolio problems
+  int numcons = 0;
+  MSK_getmaxnumcon(bestNode->problem, &numcons);
+  printText(2, "Number of constraints: %d", numcons);
+  for(int i=0; i<numcons; i++) {
+    MSKstakeye c_sk;
+    MSKrealt c_sx;
+    MSKrealt c_lb;
+    MSKrealt c_ub;
+    MSKrealt c_sn;
+    char c_string[120];
+    MSK_getsolutioni(bestNode->problem, MSK_ACC_CON, i, MSK_SOL_ITR, &c_sk, &c_sx, &c_lb, &c_ub, &c_sn);
+    MSK_sktostr(bestNode->problem, c_sk, c_string);
+    printText(4, "Constraint [%d]: %.6f - %s (sl: %.6f, su: %.6f, sn: %.6f)", i, c_sx, c_string, c_lb, c_ub, c_sn);
+  }
+  
   for(int i=0; i<2*N+1; i++) {
     printText(7,"MOSEK Var[%d]:\t%.6f", i, bestNode->mosekSoln[i+1]);
   }
@@ -546,14 +582,14 @@ int branch(Node* activeNode) {
       //MSK_getvartype(activeNode->problem, i+1, &vartype);
       //if(vartype == MSK_VAR_TYPE_INT) {
       //printf("Variable %d, value: %f, round: %f, diff: %f, hc: %f\n", i, activeNode->nodeSoln[i], round(activeNode->nodeSoln[i]), fabs(activeNode->nodeSoln[i+1] - round(activeNode->nodeSoln[i+1])), hc);
-	if( fabs(activeNode->nodeSoln[i] - round(activeNode->nodeSoln[i])) > integerTolerance_) {
-	  if( cost[i] > hc ) {
-	    asset = i;
-	    hc = cost[i];
-	  }
-	  //}
-    
+      if( fabs(activeNode->nodeSoln[i] - round(activeNode->nodeSoln[i])) > integerTolerance_) {
+	if( cost[i] > hc ) {
+	  asset = i;
+	  hc = cost[i];
 	}
+	//}
+    
+      }
     }
   }
   else if (branchingRule_ == 2) { // random
@@ -609,8 +645,9 @@ int branch(Node* activeNode) {
       }
     }
   }
-  
-  printText(2,"Branching at [Node %04d], on var(%02d), <=%2.0f [Node %04d] and >=%2.0f [Node %04d], Obj: %.5f",activeNode->ID, asset, floor(activeNode->nodeSoln[asset]), totalNodes_, ceil(activeNode->nodeSoln[asset]), totalNodes_+1, activeNode->nodeObj);
+
+  branchingVarValue_ = activeNode->nodeSoln[asset];
+  printText(2,"Branching at [Node %04d], on var(%02d), <=%2.0f [Node %04d] and >=%2.0f [Node %04d], Obj: %.5f, Cur.Var.Val: %e, ActiveNodes: %ld",activeNode->ID, asset, floor(activeNode->nodeSoln[asset]), totalNodes_, ceil(activeNode->nodeSoln[asset]), totalNodes_+1, activeNode->nodeObj, activeNode->nodeSoln[asset],nodeList_.size());
   
   // Call newNode twice
 
@@ -731,13 +768,13 @@ int selectNode(Node** activeNode) {
   int max_depth = -1;
 
   double lowestlb = nodeList_[0]->lowerBound;
-    for(unsigned int i=1; i < nodeList_.size(); i++) {
-      if(nodeList_[i]->lowerBound < lowestlb) {
-	lowestlb = nodeList_[i]->lowerBound;
-      }
+  for(unsigned int i=0; i < nodeList_.size(); i++) {
+    if(nodeList_[i]->lowerBound < lowestlb) {
+      lowestlb = nodeList_[i]->lowerBound;
     }
-    double redline = 10*fabs(lowestlb);
-    //printf("Lowest LB: %.5f, Redline: %.5f\n",lowestlb, redline);
+  }
+  double redline = 10*fabs(lowestlb);
+  //printf("Lowest LB: %.5f, Redline: %.5f\n",lowestlb, redline);
 
   if(searchRule_ == 0) {  // df0 depth-first left
     *activeNode = nodeList_[0];
@@ -755,6 +792,18 @@ int selectNode(Node** activeNode) {
     max_depth = nodeList_[0]->depth;
     for(unsigned int i=1; i < nodeList_.size(); i++) {
       if(nodeList_[i]->depth >= max_depth && nodeList_[i]->lowerBound < redline) {
+	selected = i;
+	*activeNode = nodeList_[i];
+	max_depth = nodeList_[i]->depth;
+      }
+    }
+  }
+  else if(searchRule_ == 4) { // dfc depth-first closest
+    *activeNode = nodeList_[0];
+    max_depth = nodeList_[0]->depth;
+    for(unsigned int i=1; i < nodeList_.size(); i++) {
+      if ( (nodeList_[i]->depth >  max_depth && nodeList_[i]->lowerBound < redline) ||
+	   (nodeList_[i]->depth >= max_depth && nodeList_[i]->lowerBound < redline && branchingVarValue_ - floor(branchingVarValue_) >= 0.5) ) {
 	selected = i;
 	*activeNode = nodeList_[i];
 	max_depth = nodeList_[i]->depth;
@@ -795,6 +844,15 @@ int eliminateNodes() {
   }
   printText(3, "%d nodes are eliminated due to new upper bound", totaln);
 
+  if (totaln>0) {
+    for(unsigned int i=nodeList_.size(); i>=1; i--) {
+      if(nodeList_[i-1]->eliminated) {
+	printText(4, "Node [%d] (pos:%d, obj:%e) is removed, ActiveNodes: %ld", nodeList_[i-1]->ID, i-1, nodeList_[i-1]->lowerBound, nodeList_.size());
+	nodeList_.erase(nodeList_.begin() + (i-1));
+      }
+    }
+  }
+  
   return 1;
 }
 
@@ -816,7 +874,7 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
     
     (*newNode)->ID = 0;
     (*newNode)->nodeObj = 0;
-    (*newNode)->lowerBound = 0;
+    (*newNode)->lowerBound = -999999999;
     (*newNode)->feasible = false;
     (*newNode)->intfeasible = false;
     (*newNode)->eliminated = false;
@@ -858,20 +916,20 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
     // printf("Bound: %.8f\n",bound);
     if(varID!=-1) {
       MSK_getvarbound ( 
-				   newProblem, 
-				   varID+corrector+1, 
-				   &exbk, 
-				   &exlbound, 
-				   &exubound);
+		       newProblem, 
+		       varID+corrector+1, 
+		       &exbk, 
+		       &exlbound, 
+		       &exubound);
       //printf("Variable %d, ex lb: %f, ub: %f\n",varID, exlbound, exubound);
       MSK_chgbound ( 
-      newProblem,         //MSKtask_t    task, 
-      MSK_ACC_VAR,        //MSKaccmodee  accmode, 
-      varID+corrector+1,            //MSKint32t    i, 
-      lower,              //MSKint32t    lower, 
-      1,                  //MSKint32t    finite, 
-      bound               //MSKrealt     value); 
-      );
+		    newProblem,         //MSKtask_t    task, 
+		    MSK_ACC_VAR,        //MSKaccmodee  accmode, 
+		    varID+corrector+1,            //MSKint32t    i, 
+		    lower,              //MSKint32t    lower, 
+		    1,                  //MSKint32t    finite, 
+		    bound               //MSKrealt     value); 
+		     );
 
       if(PROBLEMCODE==3) { // HOTFIX FOR SINGLE BOUND CONSTRAINTS DUE TO ERRORS
 	if(lower==0) {
@@ -888,11 +946,11 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
       
       //MSK_putbound(newProblem, MSK_ACC_VAR, varID+corrector+1, bk, lbound, ubound); -- DO NOT USE THIS ONE
       MSK_getvarbound ( 
-				   newProblem, 
-				   varID+corrector+1, 
-				   &exbk, 
-				   &exlbound, 
-				   &exubound);
+		       newProblem, 
+		       varID+corrector+1, 
+		       &exbk, 
+		       &exlbound, 
+		       &exubound);
       //printf("Variable %d, ex lb: %f, ub: %f\n",varID, exlbound, exubound);
       
     }
@@ -947,7 +1005,7 @@ int getCurrentGap(double* curGap, double* lowerBound, int* lowerNode) {
   int found = 0;
   double lb = std::numeric_limits<double>::infinity();
   for(unsigned int i=0; i < nodeList_.size(); i++) {
-    //printText(1,"%d\t%e",nodeList_[i]->ID, nodeList_[i]->lowerBound);
+    printText(7,"%d\t%e",nodeList_[i]->ID, nodeList_[i]->lowerBound);
     if(!nodeList_[i]->eliminated && !nodeList_[i]->processed) {
       if(nodeList_[i]->lowerBound < lb) {
 	lb = nodeList_[i]->lowerBound;
@@ -957,9 +1015,11 @@ int getCurrentGap(double* curGap, double* lowerBound, int* lowerNode) {
     }
   }
 
+  printText(6,"Lowest lb found: %d, Node: %d, Value: %e\n", found, *lowerNode, lb);
+
   if(found) {
     *lowerBound = lb;
-    *curGap = (globalUpperBound_ - lb) / (globalUpperBound_) * 100;
+    *curGap = (globalUpperBound_ - lb) / fabs(globalUpperBound_) * 100;
   }
   else {
     *lowerBound = globalUpperBound_;
@@ -980,7 +1040,7 @@ int solveLP(Node* aNode, int relax) {
   //MSK_clonetask(originaltask, &mtask);
   mtask = originaltask;
 
-  MSK_putintparam(mtask, MSK_IPAR_NUM_THREADS, 1);
+  // 0 MSK_putintparam(mtask, MSK_IPAR_NUM_THREADS, 1);
   
   if(relax==1) {
 
@@ -990,24 +1050,29 @@ int solveLP(Node* aNode, int relax) {
     MSK_putintparam(mtask, MSK_IPAR_INTPNT_SCALING, MSK_SCALING_NONE);
     MSK_putintparam(mtask, MSK_IPAR_INTPNT_BASIS, 0);
     MSK_putintparam(mtask, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_CONIC);
-    MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_LINDEP_USE, MSK_OFF);
+
+    //MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_LINDEP_USE, MSK_OFF);
     MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_USE, MSK_PRESOLVE_MODE_OFF);
-    //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_INFEAS, 1e-16);
-    //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_PFEAS, 1e-16);
-    MSK_putdouparam(mtask, MSK_DPAR_INTPNT_TOL_PFEAS, 1e-16);
-    //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_DFEAS, 1e-16);
-    //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_REL_GAP, 1e-16);
+    // xxMSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_INFEAS, 1e-16);
+    // xxMSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_PFEAS, 1e-16);
+    //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_TOL_PFEAS, 1e-16);
+    //  xxMSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_DFEAS, 1e-16);
+    //  xxMSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_REL_GAP, 1e-16);
+    //  xxMSK_putdouparam(mtask, MSK_DPAR_CHECK_CONVEXITY_REL_TOL, 100000);
+
+
+    
     MSK_putintparam(mtask, MSK_IPAR_INTPNT_MAX_ITERATIONS, 30000);
     MSK_putintparam(mtask, MSK_IPAR_BI_IGNORE_MAX_ITER, MSK_ON);
-    //MSK_putdouparam(mtask, MSK_DPAR_CHECK_CONVEXITY_REL_TOL, 100000);
+
     
     // QP PARAMS!
     MSK_putdouparam(mtask, MSK_DPAR_INTPNT_TOL_DFEAS, 1e-16);
     MSK_putdouparam(mtask, MSK_DPAR_INTPNT_NL_TOL_DFEAS, 1e-16);
     MSK_putdouparam(mtask, MSK_DPAR_INTPNT_NL_TOL_PFEAS, 1e-16);
-    if(aNode->ID == 0) {
-      //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
-    }
+    //if(aNode->ID == 0) {
+    //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
+    //}
   }
   else {
     char funame[80];
@@ -1021,26 +1086,28 @@ int solveLP(Node* aNode, int relax) {
     MSK_putdouparam(mtask, MSK_DPAR_MIO_TOL_ABS_GAP, dtol);
     MSK_putdouparam(mtask, MSK_DPAR_MIO_TOL_ABS_RELAX_INT,dtol);
     MSK_putdouparam(mtask, MSK_DPAR_MIO_TOL_FEAS, dtol);
-    MSK_putdouparam(mtask, MSK_DPAR_MIO_TOL_REL_RELAX_INT, dtol);
+    //MSK_putdouparam(mtask, MSK_DPAR_MIO_TOL_REL_RELAX_INT, dtol);       // commented for 8!
     //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
   }
 
-      // MOSEK PRECISION
-  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_PFEAS, 1e-16);
-  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_DFEAS, 1e-16);
-  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_REL_GAP, 1e-16);
-  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_TOL_INFEAS, 1e-16);
-  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_MU_RED, 1e-16);
+  // MOSEK PRECISION
+  //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_PFEAS, 1e-8);
+  //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_DFEAS, 1e-16);
+  //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_REL_GAP, 1e-16);
+  //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_TOL_INFEAS, 1e-16);
+  //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_MU_RED, 1e-16);
   //MSK_putintparam(mtask, MSK_IPAR_NUM_THREADS, 1);
   
 
-  int reattempted = 1;
-  //solutionpoint:
+  int reattempted = 0;
+  solutionpoint:
  
   MSKrescodee trmcode;
   MSKrescodee r;
+  printToFile(aNode);
   clock_t mosek_start = clock();
   r = MSK_optimizetrm(mtask,&trmcode);
+  printText(3,"Term code: %d", trmcode);
   clock_t mosek_finish = clock();
   double elapsed = double(mosek_finish-mosek_start) / CLOCKS_PER_SEC;
   printText(6,"Rel. sol time %.3e",elapsed);
@@ -1049,10 +1116,18 @@ int solveLP(Node* aNode, int relax) {
   MSK_solutionsummary(mtask,MSK_STREAM_LOG);
   
   MSKsolstae solsta;
+  MSKprostae prosta;
   MSKsoltypee whichsol;
   if(relax) {  whichsol = MSK_SOL_ITR; }
   else      {  whichsol = MSK_SOL_ITG; }
-  MSKrescodee obsolsta = MSK_getsolsta (mtask, whichsol, &solsta); 
+  MSKrescodee obsolsta = MSK_getsolsta (mtask, whichsol, &solsta);
+  MSK_getprosta(mtask, whichsol, &prosta);
+  char solsta_str[50];
+  char prosta_str[80];
+  MSK_solstatostr(mtask, solsta, solsta_str);
+  MSK_prostatostr(mtask, prosta, prosta_str);
+  printText(3,"Problem status: %d %s", prosta, prosta_str);
+  printText(3,"Solution status: %d %d %s", solsta, trmcode, solsta_str);
   MSKrealt primalobj;
 
   // hack for mosek problems
@@ -1067,24 +1142,42 @@ int solveLP(Node* aNode, int relax) {
     solsta = MSK_SOL_STA_OPTIMAL;
     //printf("Stall!\n");
   }
+
+  switch(prosta) {
+  case MSK_PRO_STA_PRIM_AND_DUAL_FEAS:
+  case MSK_PRO_STA_PRIM_FEAS:
+  case MSK_PRO_STA_NEAR_PRIM_FEAS:
+    goto cpsolutionfeas;
+  case MSK_PRO_STA_PRIM_INFEAS:
+  case MSK_PRO_STA_PRIM_AND_DUAL_INFEAS:
+  case MSK_PRO_STA_ILL_POSED:
+  case MSK_PRO_STA_PRIM_INFEAS_OR_UNBOUNDED:
+    goto unknowncase;
+  default:
+    printText(6,"Problem status: %s", prosta_str);
+  }
+
+
   
   if (obsolsta == MSK_RES_OK) {
-  switch( solsta ) 
-  { 
-  case MSK_SOL_STA_OPTIMAL: 
-  case MSK_SOL_STA_NEAR_OPTIMAL: 
-  case MSK_SOL_STA_PRIM_FEAS:
-  case MSK_SOL_STA_PRIM_AND_DUAL_FEAS:
-  case MSK_SOL_STA_INTEGER_OPTIMAL:
-  case MSK_SOL_STA_NEAR_INTEGER_OPTIMAL:
-      aNode->feasible = true;
-      MSK_getprimalobj(mtask, whichsol, &primalobj);
-      aNode->nodeObj = primalobj;
-      if(primalobj > aNode->lowerBound) {
-        aNode -> lowerBound = primalobj;
-      }
-      //aNode -> nodeSoln = (double*) malloc(N*sizeof(double));
-     	if(PROBLEMCODE==1) {
+    switch( solsta ) 
+      { 
+      case MSK_SOL_STA_OPTIMAL: 
+      case MSK_SOL_STA_NEAR_OPTIMAL: 
+      case MSK_SOL_STA_PRIM_FEAS:
+      case MSK_SOL_STA_PRIM_AND_DUAL_FEAS:
+      case MSK_SOL_STA_INTEGER_OPTIMAL:
+      case MSK_SOL_STA_NEAR_INTEGER_OPTIMAL:
+      cpsolutionfeas:
+	printText(3,"Node status %d, term code: %d",solsta,trmcode);
+	aNode->feasible = true;
+	MSK_getprimalobj(mtask, whichsol, &primalobj);
+	aNode->nodeObj = primalobj;
+	if(primalobj > aNode->lowerBound) {
+	  aNode -> lowerBound = primalobj;
+	}
+	//aNode -> nodeSoln = (double*) malloc(N*sizeof(double));
+	if(PROBLEMCODE==1) {
 	  MSK_getsolutionslice(mtask, whichsol, MSK_SOL_ITEM_XX, 1, N+1, aNode->nodeSoln);
 	} else if(PROBLEMCODE==2) {
 	  MSK_getsolutionslice(mtask, whichsol, MSK_SOL_ITEM_XX, N+1, 2*N+1, aNode->nodeSoln);
@@ -1092,49 +1185,77 @@ int solveLP(Node* aNode, int relax) {
 	  MSK_getsolutionslice(mtask, whichsol, MSK_SOL_ITEM_XX, N+1, 2*N+1, aNode->nodeSoln);
 	}
 	MSK_getsolutionslice(mtask, whichsol, MSK_SOL_ITEM_XX, 0, 2*N+1, aNode->mosekSoln);
-      // std::cout << primalobj << std::endl;
-      printText(3, "Node (%d) Optimal Objective: %f", aNode->ID, aNode->nodeObj);
-      break; 
+	// std::cout << primalobj << std::endl;
+	printText(3, "Node (%d) Optimal Objective: %f", aNode->ID, aNode->nodeObj);
+	break; 
+	
+      case MSK_SOL_STA_DUAL_INFEAS_CER: 
+	printText(3,"Node (%d) dual infeasibility certificate found.", aNode->ID); 
+      case MSK_SOL_STA_PRIM_INFEAS_CER: 
+	//case MSK_SOL_STA_NEAR_DUAL_INFEAS_CER: 
+	//case MSK_SOL_STA_NEAR_PRIM_INFEAS_CER:
+	aNode->feasible = false;
+	printText(3,"Node (%d) primal infeasibility certificate found.", aNode->ID); 
+	char fname[80];
+	sprintf(fname, "../test/result/infnode%d.mps", aNode->ID);
     
-  case MSK_SOL_STA_DUAL_INFEAS_CER: 
-    printText(3,"Node (%d) dual infeasibility certificate found.", aNode->ID); 
-  case MSK_SOL_STA_PRIM_INFEAS_CER: 
-    //case MSK_SOL_STA_NEAR_DUAL_INFEAS_CER: 
-    //case MSK_SOL_STA_NEAR_PRIM_INFEAS_CER:
-    aNode->feasible = false;
-    printText(3,"Node (%d) primal infeasibility certificate found.", aNode->ID); 
-    char fname[80];
-    sprintf(fname, "../test/result/infnode%d.mps", aNode->ID);
-    
-    if(FILEOUTPUT)
-      MSK_writedata(mtask, fname);
-    break; 
-  case MSK_SOL_STA_UNKNOWN: 
-  default:  // most probably solution is basic
-    aNode->feasible = false;
-    if(reattempted) {
-      printText(3,"Node status unknown %d, term code: %d, pruning, attempt failed!",solsta,trmcode);
-    }
-    else {
-      printText(4,"Node status unknown %d, term code: %d, reattempting with higher precision", solsta, trmcode);
-      MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_INFEAS, 1e-16);
-      MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_PFEAS, 1e-16);
-      MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_DFEAS, 1e-16);
-      MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_REL_GAP, 1e-16);
+	if(FILEOUTPUT)
+	  MSK_writedata(mtask, fname);
+	break; 
+      case MSK_SOL_STA_UNKNOWN: 
+      default:  // most probably solution is basic
+	if(reattempted) {
+	  printText(3,"Node status unknown %d, term code: %d, pruning, attempt failed!",solsta,trmcode);
+	  try {
+	    printText(3,"Trying to recover solution...");
+	    MSK_getprimalobj(mtask, whichsol, &primalobj);
+	    printText(3,"Recovered objective: %e", primalobj);
+	    double* currsoln = (double*) malloc(N*sizeof(double));
+	    MSK_getsolutionslice(mtask, whichsol, MSK_SOL_ITEM_XX, 1, N+1, currsoln);
+	    double sumofsoln = 0;
+	    for (int i=0; i<N; i++) {
+	      //printf("X[%d]: %e\n", i, currsoln[i]);
+	      sumofsoln += fabs(currsoln[i]);
+	    }
+	    free(currsoln);
+	    if(sumofsoln < 1e-2 && PROBLEMCODE==1) {
+	      printText(3,"Sum of solution is %e, result is unknown...", sumofsoln);
+	      goto unknowncase;
+	    }
+	    if(fabs(primalobj) >= 1e-3) {
+	      printText(3, "Non-zero objective, problem could be feasible. Continuing to get the solution");
+	      goto cpsolutionfeas;
+	    }
+	    
+	  }
+	  catch (...) {
+	    printText(3, "Exception... continuing with prune operation...");
+	  }
+	}
+	else {
+	  printText(4,"Node status unknown %d, term code: %d, reattempting with lower precision", solsta, trmcode);
+	  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_INFEAS, 1e-3);
+	  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_PFEAS, 1e-3);
+	  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_DFEAS, 1e-3);
+	  MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_REL_GAP, 1e-3);
   
-      reattempted = 1;
-      //goto solutionpoint;
-    }
-    
-    char funame[80];
-    sprintf(funame, "../test/result/unknown%d.mps", aNode->ID);
-    if(FILEOUTPUT)
-      MSK_writedata(mtask, funame);
-    break;
+	  reattempted = 1;
+	  goto solutionpoint;
+	}
+	
+	unknowncase:
+	aNode->feasible = false;
+	
+	if(FILEOUTPUT) {
+	  char funame[80];
+	  sprintf(funame, "../test/result/unknown%d.mps", aNode->ID);
+	  MSK_writedata(mtask, funame);
+	}
+	break;
     
     
 
-  }
+      }
   } else {
     printText(3,"Solution status cannot be obtained, not OK");
   } 
@@ -1158,7 +1279,7 @@ int isIntFeasible(Node* aNode) {
     //if( std::modf(aNode->nodeSoln[i], &intpart) >= 1e-5) {
     if(fabs(round(aNode->nodeSoln[i])-aNode->nodeSoln[i]) > integerTolerance_) {
       intfeasible = false;
-      printText(5,"Integer infeasibility at variable %d, value: %f",i, aNode->nodeSoln[i]);
+      printText(5,"Integer infeasibility at variable %d, value: %e, inttol: %e",i, aNode->nodeSoln[i], integerTolerance_);
     }
     printText(6,"Proximity to integer (%d - asset %d -): %.6f, value: %.6f",i,i+1,fabs(round(aNode->nodeSoln[i])-aNode->nodeSoln[i]), aNode->nodeSoln[i]);
   }
@@ -1191,10 +1312,13 @@ int isIntFeasible(Node* aNode) {
 //}
 
 int finishBB() {
-  
+
+  postSolve(bestSoln_);
+
   for(unsigned int i=0; i < allNodeList_.size(); i++) {
     deleteNode(allNodeList_[i]);
   }
+
   
   deleteProblem();
 
@@ -1225,12 +1349,17 @@ int printToFile(Node* aNode) {
 
   int fno = aNode->ID;
   char fname[80];
+  char fname2[80];
   sprintf(fname, "../test/result/node%d.mps", fno);
+  sprintf(fname2, "../test/result/node%d.lp", fno);
+
   //MSK_toconic(&(aNode->problem));
 
-  if(FILEOUTPUT)  
+  if(FILEOUTPUT) { 
     MSK_writedata(aNode->problem, fname);
-
+    MSK_writedata(aNode->problem, fname2);
+  }
+  
   return 1;
   
 }

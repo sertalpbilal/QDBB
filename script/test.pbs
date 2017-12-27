@@ -9,8 +9,10 @@ echo C ${C}
 echo S ${S}
 echo CP ${CP}
 echo R ${R}
+echo RSK ${RSK}
 echo L ${L}
 echo I ${I}
 echo P ${P}
-echo ./portfolio -d ${D} -a ${A} -t ${T} -x ${X} -b ${B} -c ${C} -s ${S} -C ${CP} -r ${R} -l ${L} -i ${I} -p ${P} -o 2
-./portfolio -d ${D} -a ${A} -t ${T} -x ${X} -b ${B} -c ${C} -s ${S} -C ${CP} -r ${R} -l ${L} -i ${I} -p ${P} -o 2
+echo OT ${OT}
+echo ./portfolio -d ${D} -a ${A} -t ${T} -x ${X} -b ${B} -c ${C} -s ${S} -C ${CP} -r ${R} -risk ${RSK} -l ${L} -i ${I} -p ${P} -ot ${OT} -ct quadratic -o 2
+./portfolio -d ${D} -a ${A} -t ${T} -x ${X} -b ${B} -c ${C} -s ${S} -C ${CP} -r ${R} -risk ${RSK} -l ${L} -i ${I} -p ${P} -ot ${OT} -ct quadratic -o 2

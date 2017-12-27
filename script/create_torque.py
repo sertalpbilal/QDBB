@@ -1,51 +1,17 @@
 import os
 import itertools
 
+problemtype = 2 # 1: roundlot, 2:cardinality, 3:single-bound
 file_append = False #True
 PID = 1
 cps = []
 
-if 0:
-    cps =[
-        ['N_100_1', 100, 200000, 0.05],
-        ['N_100_1', 100, 200000, 0.07],
-        ['N_100_1', 100, 400000, 0.09],
-        ['N_100_2', 100, 100000, 0.05],
-        ['N_100_2', 100, 200000, 0.07],
-        ['N_100_2', 100, 200000, 0.09],
-        ['N_100_3', 100, 200000, 0.05],
-        ['N_100_3', 100, 200000, 0.07],
-        ['N_100_3', 100, 200000, 0.09],
-        ['N_100_4', 100, 200000, 0.05],
-        ['N_100_4', 100, 200000, 0.07],
-        ['N_100_4', 100, 200000, 0.09],
-        ['N_100_6', 100, 100000, 0.05],
-        ['N_100_6', 100, 100000, 0.09],
-        ['N_100_6', 100, 200000, 0.05],
-        ['N_100_6', 100, 200000, 0.07],
-        ['N_100_6', 100, 400000, 0.09],
-        ['N_100_7', 100, 100000, 0.05],
-        ['N_100_7', 100, 200000, 0.07],
-        ['N_100_7', 100, 200000, 0.09],
-        ['N_100_8', 100, 100000, 0.05],
-        ['N_100_8', 100, 200000, 0.07],
-        ['N_100_8', 100, 200000, 0.09],
-        ['N_100_9', 100, 200000, 0.05],
-        ['N_100_9', 100, 200000, 0.07],
-        ['N_100_10', 100, 100000, 0.05],
-        ['N_100_10', 100, 100000, 0.07],
-        ['N_100_10', 100, 200000, 0.05],
-        ['N_100_10', 100, 200000, 0.07],
-        ['N_100_10', 100, 200000, 0.09],
-        ['N_100_10', 100, 400000, 0.09],
-        ['N_100_5', 100, 100000, 0.02]
-    ]
-else:
-    for a in [25, 50, 75, 100]: #, 200, 300, 400]:
-        for s in [1,2,3,4,5,6,7,8,9,10]:
-            for N in [50000, 100000, 150000, 200000]:
-                for ret in [0.02, 0.03, 0.04, 0.05]:
-                    cps.append(['N_{}_{}'.format(500,s), a, N, ret])
+for a in [25, 50]: #, 200, 300, 400]:
+    for s in range(1,2): #,2,3,4,5,6,7,8,9,10]:
+        for N in [50000, 100000]:
+            for ret in [0.02]: #, 0.03, 0.04, 0.05, 0.06]:
+                for ot in [0]: #[0,1]
+                    cps.append(['N_{}_{}'.format(500,s), a, N, ret, ot])
 #cps.append(['AA' ,20,400000, 0.05])
 #cps.append(['RD0',10,400000, 0.08])
 #cps.append(['RD1',30,100000, 0.07])
@@ -58,11 +24,16 @@ else:
 #cps.append(['RD8',10,400000, 0.07])
 #cps.append(['RD9',10,700000, 0.08])
 
-search  = ['best'] #'best','breadth','df0','df1']
-cutmeth = [0, 1, 2, 4] # 0: BB, 1: BCC-F, 2: BCC-I, 3: BCC-R, 4: BCC-D, 10: MOSEK, 11: MOSEK-R
+search  = ['df1'] #['best', 'df0', 'df1', 'breadth', 'dfc'] # 'best','df0','df1','breadth'] #'best','breadth','df0','df1','dfc']
+if problemtype==1:
+    cutmeth = [0, 1, 2, 4] # 0: BB, 1: BCC-F, 2: BCC-I, 3: BCC-R, 4: BCC-D, 10: MOSEK, 11: MOSEK-R
+elif problemtype==2 or problemtype==3:
+    cutmeth = [0, 1, 2, 3]
 
-branch_rule = ['mf'] #,'hc','bonami','hvar'] # 'random'
-cut_rule    = ['hc'] # ['mf','hc','bonami','hvar'] # 'random'
+branch_rule = ['mf']
+cut_rule = ['hc']
+#branch_rule = ['mf', 'hc', 'bonami', 'hvar'] #['mf'] #,'hc','bonami','hvar'] # 'random'
+#cut_rule    = ['mf', 'hc', 'bonami', 'hvar'] # ['mf','hc','bonami','hvar'] # 'random'
 
 if file_append:
     jobs = open('jobs.sh','a')
@@ -73,20 +44,26 @@ else:
 
 for b in branch_rule:
     for c in cut_rule:
-        for (d,a,C,r) in cps:
+        for (d,a,C,r,ot) in cps:
             for s in search:
                 for x in cutmeth:
-                    t = 'roundlot'
+                    if problemtype==1:
+                        t = 'roundlot'
+                    elif problemtype==2:
+                        t = 'cardinality'
+                    elif problemtype==3:
+                        t = 'single'
                     l = 100
-                    if(cutmeth == 2):
+                    if(x == 2):
                         i = 3
                         p = 1
                     else:
                         i = 1
                         p = 3
-                    allvars = (PID,d,a,t,x,b,c,s,C,r,l,i,p,PID,d,a,r,x)
-                    jobs.write('qsub -V -l nodes=1:ppn=1,mem=7GB,vmem=7GB -q long -v PID=%02d,D=%s,A=%s,T=%s,X=%s,B=%s,C=%s,S=%s,CP=%s,R=%s,L=%s,I=%s,P=%s test.pbs -o output/ -e output/ -N p_%04d_%s_%s_%s_%s\n' % allvars)
-                    jlist.write('%s %s %s %s %s %s %s %s %s %s %s %s %s (p_%04d_%s_%s_%s_%s)\n' % allvars)
+                    rsk = r*250
+                    allvars = (PID,d,a,t,x,b,c,s,C,r,rsk,l,i,p,ot,PID,d,a,r,x)
+                    jobs.write('qsub -V -l nodes=1:ppn=1,mem=7GB,vmem=7GB -q batch -v PID=%02d,D=%s,A=%s,T=%s,X=%s,B=%s,C=%s,S=%s,CP=%s,R=%s,RSK=%s,L=%s,I=%s,P=%s,OT=%s test.pbs -o output/ -e output/ -N p_%04d_%s_%s_%s_%s\n' % allvars)
+                    jlist.write('%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s (p_%04d_%s_%s_%s_%s)\n' % allvars)
                     PID = PID + 1
 
 jobs.close()

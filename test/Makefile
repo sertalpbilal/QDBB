@@ -3,15 +3,15 @@ HOME=/usr/local
 PACKAGE=/home/sec312/package
 SRCDIR=$(PACKAGE)/qdbb/src
 TESTDIR=$(PACKAGE)/qdbb/test
-INCLUDES=-I$(PACKAGE)/mosek/7/tools/platform/linux64x86/h \
+MSKVER=8
+INCLUDES=-I$(PACKAGE)/mosek/${MSKVER}/tools/platform/linux64x86/h \
          -I$(PACKAGE)/lapack-3.5.0/lapacke/include
 
-LIBS=-L$(PACKAGE)/mosek/7/tools/platform/linux64x86/bin \
+LIBS=-L$(PACKAGE)/mosek/${MSKVER}/tools/platform/linux64x86/bin \
   -lmosek64 \
   -lblas -llapack
 
-CFLAGS=-ggdb -Wall -Wunused-variable -g -O0  -Wl,-rpath-link=$(PACKAGE)/mosek/7/tools/platform/linux64x86/bin
-
+CFLAGS=-ggdb -Wall -Wunused-variable -g -O0  -Wl,-rpath-link=$(PACKAGE)/mosek/${MSKVER}/tools/platform/linux64x86/bin
 
 DEBUG=0
 CC=g++ $(CFLAGS)
@@ -43,6 +43,7 @@ portfolio: $(SRCPORT)
 	$(CC) $(SRCPORT) -o portfolio $(INCLUDES) $(LIBS)
 	# ./portfolio -type          -d    -a    -C        -r      -b    -c    -s     -l     -x   -i   -p   -o   -f
 	# ./portfolio -type roundlot -d AA -a 10 -C 100000 -r 0.06 -b mf -c mf -s df0 -l 100 -x 0 -i 1 -p 2 -o 1 -f 0
+	# ./portfolio -t cardinality -d AA -a  3 -k 2      -r 0.01 -b mf -c hc -s df1 -l 100 -x 0 -i 1 -p 2 -o 3 -f 0
 
 roundlot: $(SRCROUNDLOT)
 	$(CC) $(SRCROUNDLOT) -o roundlot $(INCLUDES) $(LIBS)
@@ -102,21 +103,21 @@ clean:
 #  -ct      Card. type       (quadratic*,linear)
 #  
 # Optional:
-#  -o         Output verbosity (1-6,1*)
-#  -f         File output      (0*,1)
-#  -b         Branching rule   (mf*,hc,random,bonami,hvar)
-#  -c         Cut rule         (mf,hc*,random,bonami,hvar)
-#  -s         Search rule      (df0,df1*,breadth,best)
-#  -l         Cut limit        (0-1000,100*)
-#  -i         Cut gen. iter    (0-100,1*)
-#  -p         Cut per iter     (0-100,3*)
-#  -x         Cut strategy     (0 [BB], 1 [BCC-F], 2* [BCC-I], 3 [BCC-R], 4 [BCC-D], 10 [MOSEK], 11 [MOSEK-R])
-#  -mind      Min cut depth    (0-100,0*)
-#  -maxd      Max cut depth    (0-100,100*)
-#  -dct       Deep cut thresh  (0-1,0*)
-#  -timelimit Time limit       (0-1000,1000*)
-
-
+#  -o           Output verbosity (1-6,1*)
+#  -f           File output      (0*,1)
+#  -b           Branching rule   (mf*,hc,random,bonami,hvar)
+#  -c           Cut rule         (mf,hc*,random,bonami,hvar)
+#  -s           Search rule      (df0,df1*,breadth,best,dfc)
+#  -l           Cut limit        (0-1000,100*)
+#  -i           Cut gen. iter    (0-100,1*)
+#  -p           Cut per iter     (0-100,3*)
+#  -x           Cut strategy     (0 [BB], 1 [BCC-F], 2* [BCC-I], 3 [BCC-R], 4 [BCC-D], 10 [MOSEK], 11 [MOSEK-R])
+#  -mind        Min cut depth    (0-100,0*)
+#  -maxd        Max cut depth    (0-100,100*)
+#  -dct         Deep cut thresh  (0-1,0*)
+#  -timelimit   Time limit       (0-1000,1000*)
+#  -dryrun  -dr Dry run          (0*,1)
+#  -objtype -ot Objective Type  (0*,1,2) min risk, max return, risk-averse
 
 
 
