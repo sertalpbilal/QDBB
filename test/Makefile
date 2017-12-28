@@ -3,7 +3,7 @@ HOME=/usr/local
 PACKAGE=/home/sec312/package
 SRCDIR=$(PACKAGE)/qdbb/src
 TESTDIR=$(PACKAGE)/qdbb/test
-MSKVER=8
+MSKVER=7.1
 INCLUDES=-I$(PACKAGE)/mosek/${MSKVER}/tools/platform/linux64x86/h \
          -I$(PACKAGE)/lapack-3.5.0/lapacke/include
 

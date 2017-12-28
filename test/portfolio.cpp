@@ -678,25 +678,74 @@ int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, in
 
       if(addToProblem == 1) { // Cut depth is not important here...
 
-	MSKrescodee myres;
-	myres = MSK_toconic(env);
-	char symname[120];
-	char mystr[120];
-	MSK_getcodedesc (myres, symname, mystr); 
-	printf("Return: %s\n", mystr);
+	//MSKrescodee myres;
+	//myres = MSK_toconic(env);
+	//char symname[120];
+	//char mystr[120];
+	//MSK_getcodedesc (myres, symname, mystr); 
+	//printf("Return: %s\n", mystr);
 
+	
 	
 	status = 1;
 	int cutidx;
-	MSK_getnumcon(env,&cutidx);
-	MSK_appendcons(env,1);
-	MSK_putqconk(env, cutidx, N, zrowindex, zcolindex, zvalindex);
-	MSK_putaij(env, cutidx, N+asset, - tau);
-	MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, k);
-	myres = MSK_toconic(env);
-	MSK_getcodedesc (myres, symname, mystr); 
-	printf("Return: %s\n", mystr);
 
+	if(false){ // old method: add quadratic constraint and convert to conic!
+	  
+	  MSK_getnumcon(env,&cutidx);
+	  MSK_appendcons(env,1);
+	  MSK_putqconk(env, cutidx, N, zrowindex, zcolindex, zvalindex);
+	  MSK_putaij(env, cutidx, N+asset, - tau);
+	  MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, k);
+	  
+	  char mydemo[80];
+	  sprintf(mydemo, "result/mydemo%d.mps", asset);
+	  MSK_writedata(env, mydemo);
+
+
+	  MSK_toconic(env);
+	  //MSK_getcodedesc (myres, symname, mystr); 
+	}
+	else { // new method: insert variables and cones
+
+	  // 1: variables and cone
+	  int numvars;
+	  {
+	    // add variables
+	    MSK_getnumvar(env,&numvars);
+	    MSK_appendvars(env, N);
+	    // add cone
+	    MSK_appendconeseq(env, MSK_CT_QUAD, 0, N, numvars);
+	    MSK_putvarbound(env, numvars, MSK_BK_LO, 0, 0);
+	    for(int i=1; i<N; i++) {
+	      MSK_putvarbound(env, numvars+i, MSK_BK_FR, 0, 0);
+	    }
+	  }
+	  // 2: linear constraints
+	  {
+	    // add linear relations
+	    MSK_getnumcon(env,&cutidx);
+	    MSK_appendcons(env,N);
+	    int j = 1;
+	    for(int i=1; i<=N; i++) {
+	      if(i==asset) {
+		continue;
+	      }
+	      MSK_putconbound(env, cutidx+j-1, MSK_BK_FX, 0, 0);
+	      MSK_putaij(env, cutidx+j-1, numvars+j, 1);
+	      MSK_putaij(env, cutidx+j-1, N+i, -1);
+	      j++;
+	    }
+	    MSK_putconbound(env, cutidx+N-1, MSK_BK_FX, sqrt(k), sqrt(k));
+	    MSK_putaij(env, cutidx+N-1, numvars, 1);
+	    MSK_putaij(env, cutidx+N-1, N+asset, -tau/2/sqrt(k));
+	  }
+	  //char mydemo[80];
+	  //sprintf(mydemo, "result/dcc%d.mps", asset);
+	  //MSK_writedata(env, mydemo);
+	}
+	
+	  
 	*cutIndex = cutidx;
 
 	char txbuffer[80];
@@ -771,7 +820,7 @@ int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, in
 	for(int i=0; i<N; i++) {
 	  MSK_putaij(env, cutidx, N+i+1, zlinearindex[i]);
 	}
-	MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, k); 
+	MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, k+0.1); 
 	//MSK_toconic(env);
 	
 	*cutIndex = cutidx;

@@ -8,11 +8,11 @@ int FILEOUTPUT = 0;
 
 #define printText(flag, ...) if (flag <= OUTLEV) { printf("%d:%*s",flag,2*flag,""); printf(__VA_ARGS__); printf("\n"); fflush(stdout); }
 
-//static void MSKAPI printstr(void *handle,
-//			    MSKCONST char str[])
-//{
-//  printf("%s",str);
-//}
+static void MSKAPI printstr(void *handle,
+			    MSKCONST char str[])
+{
+  //printf("M: %s",str);
+}
 
 
 MSKtask_t oProblem = NULL; // Original problem instance
@@ -931,7 +931,7 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
 		    bound               //MSKrealt     value); 
 		     );
 
-      if(PROBLEMCODE==3) { // HOTFIX FOR SINGLE BOUND CONSTRAINTS DUE TO ERRORS
+      if(PROBLEMCODE==2 || PROBLEMCODE==3) { // HOTFIX FOR SINGLE BOUND CONSTRAINTS DUE TO ERRORS
 	if(lower==0) {
 	  MSK_chgbound ( 
 			newProblem,         //MSKtask_t    task, 
@@ -942,6 +942,7 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
 			bound               //MSKrealt     value); 
 			 );
 	}
+	MSK_putvarbound(newProblem, varID+corrector+1, MSK_BK_FX, bound, bound);
       }
       
       //MSK_putbound(newProblem, MSK_ACC_VAR, varID+corrector+1, bk, lbound, ubound); -- DO NOT USE THIS ONE
@@ -1015,7 +1016,7 @@ int getCurrentGap(double* curGap, double* lowerBound, int* lowerNode) {
     }
   }
 
-  printText(6,"Lowest lb found: %d, Node: %d, Value: %e\n", found, *lowerNode, lb);
+  printText(6,"Lowest lb found: %d, Node: %d, Value: %e", found, *lowerNode, lb);
 
   if(found) {
     *lowerBound = lb;
@@ -1037,32 +1038,31 @@ int solveLP(Node* aNode, int relax) {
   MSKtask_t originaltask = aNode->problem;
 
   MSKtask_t mtask;
-  //MSK_clonetask(originaltask, &mtask);
   mtask = originaltask;
 
-  // 0 MSK_putintparam(mtask, MSK_IPAR_NUM_THREADS, 1);
+  MSK_putintparam(mtask, MSK_IPAR_NUM_THREADS, 1);
   
   if(relax==1) {
 
     
     MSK_putintparam(mtask, MSK_IPAR_MIO_MODE, MSK_MIO_MODE_IGNORED); // make it LP
     MSK_putintparam(mtask, MSK_IPAR_INTPNT_REGULARIZATION_USE, MSK_OFF);
-    MSK_putintparam(mtask, MSK_IPAR_INTPNT_SCALING, MSK_SCALING_NONE);
+    //MSK_putintparam(mtask, MSK_IPAR_INTPNT_SCALING, MSK_SCALING_NONE);
     MSK_putintparam(mtask, MSK_IPAR_INTPNT_BASIS, 0);
-    MSK_putintparam(mtask, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_CONIC);
+    //MSK_putintparam(mtask, MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_CONIC);
 
-    //MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_LINDEP_USE, MSK_OFF);
+    MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_LINDEP_USE, MSK_OFF);
     MSK_putintparam(mtask, MSK_IPAR_PRESOLVE_USE, MSK_PRESOLVE_MODE_OFF);
     // xxMSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_INFEAS, 1e-16);
     // xxMSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_PFEAS, 1e-16);
-    //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_TOL_PFEAS, 1e-16);
-    //  xxMSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_DFEAS, 1e-16);
-    //  xxMSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_REL_GAP, 1e-16);
+    //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_TOL_PFEAS, 1e-6);
+    //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_DFEAS, 1e-6);
+    //MSK_putdouparam(mtask, MSK_DPAR_INTPNT_CO_TOL_REL_GAP, 1e-6);
     //  xxMSK_putdouparam(mtask, MSK_DPAR_CHECK_CONVEXITY_REL_TOL, 100000);
 
 
     
-    MSK_putintparam(mtask, MSK_IPAR_INTPNT_MAX_ITERATIONS, 30000);
+    // 1 MSK_putintparam(mtask, MSK_IPAR_INTPNT_MAX_ITERATIONS, 30000);
     MSK_putintparam(mtask, MSK_IPAR_BI_IGNORE_MAX_ITER, MSK_ON);
 
     
@@ -1070,9 +1070,9 @@ int solveLP(Node* aNode, int relax) {
     MSK_putdouparam(mtask, MSK_DPAR_INTPNT_TOL_DFEAS, 1e-16);
     MSK_putdouparam(mtask, MSK_DPAR_INTPNT_NL_TOL_DFEAS, 1e-16);
     MSK_putdouparam(mtask, MSK_DPAR_INTPNT_NL_TOL_PFEAS, 1e-16);
-    //if(aNode->ID == 0) {
-    //MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
-    //}
+    if(true) { // aNode->ID == 0) {
+      MSK_linkfunctotaskstream (mtask, MSK_STREAM_LOG, NULL, printstr);
+    }
   }
   else {
     char funame[80];

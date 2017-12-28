@@ -6,10 +6,10 @@ file_append = False #True
 PID = 1
 cps = []
 
-for a in [25, 50]: #, 200, 300, 400]:
-    for s in range(1,2): #,2,3,4,5,6,7,8,9,10]:
+for a in [10, 20,] : #25, 50]: #, 200, 300, 400]:
+    for s in range(1,11): #,2,3,4,5,6,7,8,9,10]:
         for N in [50000, 100000]:
-            for ret in [0.02]: #, 0.03, 0.04, 0.05, 0.06]:
+            for ret in [0.02, 0.03, 0.04, 0.05, 0.06]:
                 for ot in [0]: #[0,1]
                     cps.append(['N_{}_{}'.format(500,s), a, N, ret, ot])
 #cps.append(['AA' ,20,400000, 0.05])
@@ -47,13 +47,17 @@ for b in branch_rule:
         for (d,a,C,r,ot) in cps:
             for s in search:
                 for x in cutmeth:
+                    l = 100
+                    # problem specific assignments
                     if problemtype==1:
                         t = 'roundlot'
                     elif problemtype==2:
                         t = 'cardinality'
+                        k = round((C+50000)/50000)
+                        l = a
                     elif problemtype==3:
                         t = 'single'
-                    l = 100
+                    # BCC-I, 3 iter 1 cut per iter
                     if(x == 2):
                         i = 3
                         p = 1
@@ -61,9 +65,9 @@ for b in branch_rule:
                         i = 1
                         p = 3
                     rsk = r*250
-                    allvars = (PID,d,a,t,x,b,c,s,C,r,rsk,l,i,p,ot,PID,d,a,r,x)
-                    jobs.write('qsub -V -l nodes=1:ppn=1,mem=7GB,vmem=7GB -q batch -v PID=%02d,D=%s,A=%s,T=%s,X=%s,B=%s,C=%s,S=%s,CP=%s,R=%s,RSK=%s,L=%s,I=%s,P=%s,OT=%s test.pbs -o output/ -e output/ -N p_%04d_%s_%s_%s_%s\n' % allvars)
-                    jlist.write('%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s (p_%04d_%s_%s_%s_%s)\n' % allvars)
+                    allvars = (PID,d,a,t,x,b,c,s,C,r,rsk,k,l,i,p,ot,PID,d,a,r,x)
+                    jobs.write('qsub -V -l nodes=1:ppn=1,mem=7GB,vmem=7GB -q batch -v PID=%02d,D=%s,A=%s,T=%s,X=%s,B=%s,C=%s,S=%s,CP=%s,R=%s,RSK=%s,k=%s,L=%s,I=%s,P=%s,OT=%s test.pbs -o output/ -e output/ -N p_%04d_%s_%s_%s_%s\n' % allvars)
+                    jlist.write('%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s (p_%04d_%s_%s_%s_%s)\n' % allvars)
                     PID = PID + 1
 
 jobs.close()

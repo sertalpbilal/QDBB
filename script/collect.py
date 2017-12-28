@@ -91,7 +91,7 @@ for efile in sorted(files):
 #title = ['ID', 'Filename','\tNProc','NGen','SOCO S','Time       ','Cuts G','Cuts Ap','Total Impr.','Best Impr.', 'Objective','Node Chg','Time Chg','Time/SOCO']
 #result.insert(0, title)
 
-print('ID Dataset Asset P.Type CutMethod Branching Cutting Searching Capital Return Risk Limit Iter CutPerIter ObjType Filename ID2 Cmd NProc NGen SOCOsolved Time CutsGen CutsApp TotalImp BestImp Objective')
+print('ID Dataset Asset P.Type CutMethod Branching Cutting Searching Capital Return Risk Cardinality Limit Iter CutPerIter ObjType Filename ID2 Cmd NProc NGen SOCOsolved Time CutsGen CutsApp TotalImp BestImp Objective')
 
 i = 0
 if(status_format != 1):

@@ -184,13 +184,14 @@ int createCardinality(MSKtask_t* task)
     char mystr[100];
     MSKrescodee myres = MSK_toconic (*task);
     MSK_getcodedesc (myres, symname, mystr); 
-    printf("Return: %s\n", mystr);
+    printf("MSK Conversion: %s\n", mystr);
   }
     
   
-  if(FILEOUTPUT)
+  if(FILEOUTPUT) {
     MSK_writedata(*task, "result/CardinalityOriginal2.mps");
-  
+    MSK_writedata(*task, "result/CardinalityOriginal.lp");
+  }
 
   string solver("MOSEK");
   
