@@ -155,8 +155,13 @@ int createSingleCardinality(MSKtask_t* task)
     MSK_writedata(*task, "result/singleOriginal.mps");
   }
 
-  MSK_toconic(*task);
-    
+  r = MSK_toconic(*task);
+  char symname[100];
+  char mystr[100];
+  MSK_getcodedesc(r, symname, mystr); 
+  printf("Return: %s\n", mystr);
+
+  
   if(FILEOUTPUT) {
     MSK_writedata(*task, "result/singleOriginal2.mps");
   }

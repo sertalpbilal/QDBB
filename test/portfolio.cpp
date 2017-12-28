@@ -847,32 +847,44 @@ int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, in
     
     
   }
-  else if(PROBLEMCODE == 3) { // SINGLE CARDINAL
+  else if(PROBLEMCODE==3) { // SINGLE CARDINAL
     N = numVars_-1;
     //printf("N: %d\n",N);
-    int* zrowindex = new int[2];
-    int* zcolindex = new int[2];
-    double*  zvalindex = new double[2];
-    zrowindex[0] = asset;
-    zrowindex[1] = N+asset;
-    zcolindex[0] = asset;
-    zcolindex[1] = N+asset;
-    zvalindex[0] = 2;
-    zvalindex[1] = -2;
-    
-    //printf("Working?\n");
-    int cutidx;
-    MSK_getnumcon(env,&cutidx);
-    MSK_appendcons(env,1);
-    MSK_putqconk(env, cutidx, 2, zrowindex, zcolindex, zvalindex);
-    MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, 0);
-    *cutIndex = cutidx;
-    
 
-    MSKrescodee r;
-    r = MSK_toconic(env);
-    r = r;
-    //printf("r: %d\n",r);
+    if(false) { // quad to conic
+      int* zrowindex = new int[2];
+      int* zcolindex = new int[2];
+      double*  zvalindex = new double[2];
+      zrowindex[0] = asset;
+      zrowindex[1] = N+asset;
+      zcolindex[0] = asset;
+      zcolindex[1] = N+asset;
+      zvalindex[0] = 2;
+      zvalindex[1] = -2;
+      
+      //printf("Working?\n");
+      int cutidx;
+      MSK_getnumcon(env,&cutidx);
+      MSK_appendcons(env,1);
+      MSK_putqconk(env, cutidx, 2, zrowindex, zcolindex, zvalindex);
+      MSK_putconbound(env, cutidx, MSK_BK_UP, -MSK_INFINITY, 0);
+      *cutIndex = cutidx;
+      
+      
+      //MSKrescodee r;
+      MSK_toconic(env);
+      //r = r;
+      //printf("r: %d\n",r);
+      delete[] zrowindex;
+      delete[] zcolindex;
+      delete[] zvalindex;
+    }
+    else { // direct cone
+      int* vals = new int[2];
+      vals[0] = N+asset;
+      vals[1] = asset;
+      MSK_appendcone(env, MSK_CT_QUAD, 0, 2, vals);
+    }
 
     char txbuffer[80];
     
@@ -883,9 +895,6 @@ int addNewCut(MSKtask_t env, int* cutIndex, double* currSoln, double nodeObj, in
     if(FILEOUTPUT)
       MSK_writedata(env, txbuffer);
     
-    delete[] zrowindex;
-    delete[] zcolindex;
-    delete[] zvalindex;
     
     return 1;
     

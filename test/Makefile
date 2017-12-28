@@ -3,7 +3,7 @@ HOME=/usr/local
 PACKAGE=/home/sec312/package
 SRCDIR=$(PACKAGE)/qdbb/src
 TESTDIR=$(PACKAGE)/qdbb/test
-MSKVER=7.1
+MSKVER=8.1
 INCLUDES=-I$(PACKAGE)/mosek/${MSKVER}/tools/platform/linux64x86/h \
          -I$(PACKAGE)/lapack-3.5.0/lapacke/include
 
@@ -39,7 +39,7 @@ all: $(SRCFILES)
 	#              0-5  0-1      0-1       >0    -1, >0   >0              >0
 	# ./qdbb 10    1    0        0         100   2        1    10000 0.06 
 
-portfolio: $(SRCPORT)
+portfolio: $(SRCPORT) Makefile
 	$(CC) $(SRCPORT) -o portfolio $(INCLUDES) $(LIBS)
 	# ./portfolio -type          -d    -a    -C        -r      -b    -c    -s     -l     -x   -i   -p   -o   -f
 	# ./portfolio -type roundlot -d AA -a 10 -C 100000 -r 0.06 -b mf -c mf -s df0 -l 100 -x 0 -i 1 -p 2 -o 1 -f 0

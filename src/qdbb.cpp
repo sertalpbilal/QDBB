@@ -932,17 +932,18 @@ int createNewNode(Node* parent, Node** newNode, int varID, double bound, int low
 		     );
 
       if(PROBLEMCODE==2 || PROBLEMCODE==3) { // HOTFIX FOR SINGLE BOUND CONSTRAINTS DUE TO ERRORS
-	if(lower==0) {
+	if(lower==0 && round(bound)==0) {
 	  MSK_chgbound ( 
 			newProblem,         //MSKtask_t    task, 
 			MSK_ACC_VAR,        //MSKaccmodee  accmode, 
 			varID+1,            //MSKint32t    i, 
-			lower,              //MSKint32t    lower, 
+			0,              //MSKint32t    lower, 
 			1,                  //MSKint32t    finite, 
-			bound               //MSKrealt     value); 
+			0               //MSKrealt     value); 
 			 );
 	}
-	MSK_putvarbound(newProblem, varID+corrector+1, MSK_BK_FX, bound, bound);
+	int boundint = round(bound);
+	MSK_putvarbound(newProblem, varID+corrector+1, MSK_BK_FX, boundint, boundint);
       }
       
       //MSK_putbound(newProblem, MSK_ACC_VAR, varID+corrector+1, bk, lbound, ubound); -- DO NOT USE THIS ONE
